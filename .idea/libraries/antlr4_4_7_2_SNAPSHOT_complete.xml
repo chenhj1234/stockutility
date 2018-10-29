@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="antlr4-4.7.2-SNAPSHOT-complete">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../../../antlr4-4.7.2-SNAPSHOT-complete.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
