@@ -7,6 +7,8 @@ public class InfoStringGrammarDataListener extends InfoStringGrammarBaseListener
     public StackBasicInformation stockInfo = new StackBasicInformation();
     public int parsedToken = -1;
     public String yearAndSeasonString = "";
+    private int annualYear = 0;
+    private int recordSeason = 0;
     private void resetParsedToken() {
         parsedToken = -1;
     }
@@ -38,6 +40,7 @@ public class InfoStringGrammarDataListener extends InfoStringGrammarBaseListener
         return date1;
     }
     public boolean assignRealNumber(String numberStr) {
+        StackBasicInformation.seasonRecord srec = null;
         switch (getParsedToken()) {
             case InfoStringGrammarParser.CASH_DIVIDE_END:
                 stockInfo.CashDividend = Float.valueOf(numberStr);
@@ -72,12 +75,16 @@ public class InfoStringGrammarDataListener extends InfoStringGrammarBaseListener
                 if(showInfoData) System.out.println("BookValuePerShare " + stockInfo.BookValuePerShare);
                 break;
             case InfoStringGrammarParser.YEAR_UNIT:
-                stockInfo.EarningsPerShare_Year_Map.put(yearAndSeasonString, Float.valueOf(numberStr));
-                if(showInfoData) System.out.println("Year:" + yearAndSeasonString + " value:" + stockInfo.EarningsPerShare_Year_Map.get(yearAndSeasonString));
+                srec = stockInfo.new seasonRecord(annualYear, 0, Float.valueOf(numberStr));
+                stockInfo.yearRecordList.add(srec);
+//                stockInfo.EarningsPerShare_Year_Map.put(yearAndSeasonString, Float.valueOf(numberStr));
+                if(showInfoData) System.out.println("Year:" + annualYear + " season:" + recordSeason + " value:" + srec.share);
                 break;
             case InfoStringGrammarParser.YEAR_BEFORE_SEASON:
-                stockInfo.EarningsPerShare_Season_Map.put(yearAndSeasonString, Float.valueOf(numberStr));
-                if(showInfoData) System.out.println("Year:" + yearAndSeasonString + " value:" + stockInfo.EarningsPerShare_Season_Map.get(yearAndSeasonString));
+                srec = stockInfo.new seasonRecord(annualYear, recordSeason, Float.valueOf(numberStr));
+                stockInfo.seasonRecordList.add(srec);
+//                stockInfo.EarningsPerShare_Season_Map.put(yearAndSeasonString, Float.valueOf(numberStr));
+                if(showInfoData) System.out.println("Year:" + annualYear + " season:" + recordSeason + " value:" + srec.share);
                 break;
             case InfoStringGrammarParser.EXCLUSION_DATE:
                 stockInfo.ExclusionDate = strToDate(numberStr);
@@ -104,11 +111,14 @@ public class InfoStringGrammarDataListener extends InfoStringGrammarBaseListener
     @Override public void enterReal_Year(InfoStringGrammarParser.Real_YearContext ctx) {
         setParsedToken(InfoStringGrammarParser.YEAR_UNIT);
         yearAndSeasonString = ctx.REAL_NUMBER().getText();
+        annualYear = Integer.parseInt(ctx.REAL_NUMBER().getText());
         if(showListenerClass) System.out.println(ctx.getClass().getSimpleName());
     }
     @Override public void enterReal_Year_season(InfoStringGrammarParser.Real_Year_seasonContext ctx) {
         setParsedToken(InfoStringGrammarParser.YEAR_BEFORE_SEASON);
         yearAndSeasonString = ctx.REAL_NUMBER(0).getText() + ctx.REAL_NUMBER(1).getText();
+        annualYear = Integer.parseInt(ctx.REAL_NUMBER(0).getText());
+        recordSeason = Integer.parseInt(ctx.REAL_NUMBER(1).getText());
         if(showListenerClass) System.out.println(ctx.getClass().getSimpleName());
     }
     @Override public void enterReal_Percent(InfoStringGrammarParser.Real_PercentContext ctx) {

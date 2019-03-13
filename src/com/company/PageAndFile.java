@@ -10,7 +10,10 @@ import java.util.Date;
 
 public class PageAndFile {
     final String basicInfoUrl = "https://tw.stock.yahoo.com/d/s/company_STOCK_ID.html";
-    final String savedFilePath = "/Users/chenhj1234/Android/sample/repo/StockUtility/saved_pages";
+    final String dailyPriseUrl = "https://tw.stock.yahoo.com/q/ts?s=STOCK_ID";
+    final String annualDividendUtl = "https://tw.stock.yahoo.com/d/s/dividend_STOCK_ID.html";
+    final String earningUtl = "https://tw.stock.yahoo.com/d/s/earning_STOCK_ID.html";
+    final String savedFilePath = "./saved_pages";
     String dateStr = "";
     BufferedReader openURLForRead(String url) {
         try {
@@ -86,6 +89,33 @@ public class PageAndFile {
         String sUrl = basicInfoUrl.replace("STOCK_ID", sId);
         String sFile = createOutputFolder();
         sFile = sFile+"/" + sId + ".html";
+        if(writeURLToFile(sFile,sUrl)) {
+            return sFile;
+        }
+        return null;
+    }
+    public String getDailyPriseAndSave(String sId) {
+        String sUrl = dailyPriseUrl.replace("STOCK_ID", sId);
+        String sFile = createOutputFolder();
+        sFile = sFile+"/daily_prise_" + sId + ".html";
+        if(writeURLToFile(sFile,sUrl)) {
+            return sFile;
+        }
+        return null;
+    }
+    public String getAnnualDividendAndSave(String sId) {
+        String sUrl = annualDividendUtl.replace("STOCK_ID", sId);
+        String sFile = createOutputFolder();
+        sFile = sFile+"/annual_dividend_" + sId + ".html";
+        if(writeURLToFile(sFile,sUrl)) {
+            return sFile;
+        }
+        return null;
+    }
+    public String getEarningPageAndSave(String sId) {
+        String sUrl = earningUtl.replace("STOCK_ID", sId);
+        String sFile = createOutputFolder();
+        sFile = sFile+"/earning_" + sId + ".html";
         if(writeURLToFile(sFile,sUrl)) {
             return sFile;
         }

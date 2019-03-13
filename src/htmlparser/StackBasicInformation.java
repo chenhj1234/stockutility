@@ -1,5 +1,6 @@
 package htmlparser;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -30,10 +31,20 @@ public class StackBasicInformation {
     public float ReturnOnAssets;
     // 股東權益報酬率
     public float ReturnOnEquity;
+    public class seasonRecord {
+        public int year;
+        public int season;
+        public float share;
+        public seasonRecord(int y, int s, float sh) {
+            year = y;
+            season = s;
+            share = sh;
+        }
+    }
     // 每股盈餘 季度
-    HashMap<String, Float> EarningsPerShare_Season_Map =new HashMap<String, Float>();
+    public ArrayList<seasonRecord> seasonRecordList = new ArrayList<>();
     // 每股盈餘 年度
-    HashMap<String, Float> EarningsPerShare_Year_Map =new HashMap<String, Float>();
+    public ArrayList<seasonRecord> yearRecordList = new ArrayList<>();
     public void printStackBasicInformation() {
         System.out.println("Stock name:" + StockName + " stock number:" + StockNumber);
         System.out.println("Dividend cash:" + CashDividend + " date:" + ExclusionDate);

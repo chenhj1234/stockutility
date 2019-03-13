@@ -8,7 +8,7 @@ public class StockListUtil {
     private Statement mStatement = null;
     private ResultSet mResultSet = null;
     private PreparedStatement mPreparedStatement = null;
-    private String serverName = "10.20.240.102";
+    private String serverName = "10.20.70.136";
     private String mydatabase = "stock_identifier_alpha";
     private String tblStockId = "stockid";
     private String url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";

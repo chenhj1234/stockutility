@@ -108,8 +108,11 @@ public class HTMLParserTableListener extends HTMLParserBaseListener {
 
     public void processTable() {
         int idx, idx2;
-        ParseTableMeta meta = new ParseTableMeta();
-        tableMetadata.add(meta);
+        ParseTableMeta meta;
+        if(tableList.size() > 0) {
+            meta = new ParseTableMeta();
+            tableMetadata.add(meta);
+        }
 
         for(idx = 1; idx < tableList.size(); idx++) {
             ParseTree ctx = tableList.get(idx);
