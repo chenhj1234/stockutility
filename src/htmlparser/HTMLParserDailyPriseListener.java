@@ -98,7 +98,6 @@ public class HTMLParserDailyPriseListener extends HTMLParserBaseListener {
             DateFormat todayFormat = new SimpleDateFormat("yyyy/MM/dd");
             Date todayDate = new Date();
             String todayStr = todayFormat.format(todayDate);
-            System.out.println(" --- " + todayStr);
             DateFormat sdf = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss");
             try {
                 // To get the date object from the string just called the

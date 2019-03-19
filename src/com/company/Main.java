@@ -5,7 +5,6 @@ import htmlparser.HTMLParserEarningListener;
 import htmlparser.HandleWebPage;
 import htmlparser.StackBasicInformation;
 import sqlutil.StockSqlUtil;
-import sun.jvm.hotspot.debugger.Page;
 
 public class Main {
     private static boolean DEBUG_SINGLE_STOCK = false;
@@ -13,9 +12,9 @@ public class Main {
     private static boolean DEBUG_DATABASE_STOCK_INSERT_BASIC = true;
     private static boolean DEBUG_DATABASE_STOCK_INSERT_DAILY = true;
     private static boolean DEBUG_DATABASE_STOCK_INSERT_DIVIDEND = true;
+    private static boolean DEBUG_DATABASE_STOCK_INSERT_EARNING = true;
     private static boolean DEBUG_DATABASE_STOCK_ANALYSIS_RATIO = true;
     private static boolean DEBUG_DATABASE_STOCK_APPLY_STRATEGY = true;
-    private static boolean DEBUG_DATABASE_STOCK_INSERT_EARNING = true;
     private static boolean DEBUG_DATABASE_STOCK_COUNT_FORMANCE = true;
     private static boolean DEBUG_GET_PAGE = true;
     private static String testStockId = "1102";
@@ -141,6 +140,9 @@ public class Main {
                         htmlListener.searnAfterTaxListener.year2,
                         htmlListener.searnAfterTaxListener.alist2,
                         htmlListener.searnBeforeTaxListener.alist2);
+                stua.insertMonthlyEarningTable(testStockId, htmlListener.monthListener.year1, htmlListener.monthListener.alist1);
+                stua.insertMonthlyEarningTable(testStockId, htmlListener.monthListener.year2, htmlListener.monthListener.alist2);
+
             }
             if(DEBUG_DATABASE_STOCK_ANALYSIS_RATIO) stua.analysisReturnRatio(testStockId);
             if(DEBUG_DATABASE_STOCK_APPLY_STRATEGY) stua.applyStrategy(testStockId, 0);
@@ -191,16 +193,19 @@ public class Main {
                         }
                         if(DEBUG_DATABASE_STOCK_INSERT_EARNING) {
                             StockSqlUtil stu = new StockSqlUtil();
-                            System.out.println("Adding earning info db");
+                            System.out.println("Adding earning info db with stock:" + se.id);
                             HTMLParserEarningListener htmlListener = hWebPage.mEarningListener;
-                            stu.insertSeasonEarningTable(testStockId,
+                            stu.insertSeasonEarningTable(se.id,
                                     htmlListener.searnAfterTaxListener.year1,
                                     htmlListener.searnAfterTaxListener.alist1,
                                     htmlListener.searnBeforeTaxListener.alist1);
-                            stu.insertSeasonEarningTable(testStockId,
+                            stu.insertSeasonEarningTable(se.id,
                                     htmlListener.searnAfterTaxListener.year2,
                                     htmlListener.searnAfterTaxListener.alist2,
                                     htmlListener.searnBeforeTaxListener.alist2);
+                            stu.insertMonthlyEarningTable(se.id, htmlListener.monthListener.year1, htmlListener.monthListener.alist1);
+                            stu.insertMonthlyEarningTable(se.id, htmlListener.monthListener.year2, htmlListener.monthListener.alist2);
+
                         }
 
                     } else {

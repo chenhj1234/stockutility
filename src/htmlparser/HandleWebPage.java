@@ -110,9 +110,10 @@ public class HandleWebPage {
         return HANDLE_PAGE_SUCCESS;
     }
 
-    public HTMLParserEarningListener mEarningListener = new HTMLParserEarningListener();
+    public HTMLParserEarningListener mEarningListener = null;
     public int getEarningPageFromFile(String pageFileName) {
         DividendPageParser divParser = new DividendPageParser();
+        mEarningListener = new HTMLParserEarningListener();
         divParser.parsePage(pageFileName, mEarningListener);
         mEarningListener.processTable();
         return HANDLE_PAGE_SUCCESS;

@@ -69,7 +69,13 @@ public class HTMLParserDividendListener extends HTMLParserBaseListener {
                 if(currentIndex == infoParser.TYPE_INDEX_INT) {
                     divRecList.add(divRec);
                     currentIndex = 0;
-                    System.out.println("Add one record divRec year:" + divRec.year);
+                    System.out.println("Add year:" + divRec.year + " div:" +
+                                    divRec.dividend[0] + " " +
+                                    divRec.dividend[1] + " " +
+                                    divRec.dividend[2] + " " +
+                                    divRec.dividend[3] + " " +
+                                    divRec.dividend[4]);
+
                 }
             } else {
                 System.out.println("Error:");

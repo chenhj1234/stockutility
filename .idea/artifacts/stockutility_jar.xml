@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="stockutility:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/stockutility_jar</output-path>
+    <root id="archive" name="stockutility.jar">
+      <element id="module-output" name="stockutility" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/mysql/mysql-connector-java/8.0.15/mysql-connector-java-8.0.15.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/protobuf/protobuf-java/3.6.1/protobuf-java-3.6.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/antlr4-4.7.2-SNAPSHOT-complete.jar" path-in-jar="/" />
+      <element id="library" level="project" name="antlr4-4.7.2-SNAPSHOT-complete" />
+      <element id="library" level="project" name="mysql:mysql-connector-java:8.0.15" />
+    </root>
+  </artifact>
+</component>

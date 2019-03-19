@@ -69,6 +69,10 @@ public class CSVStackParser {
             mPreparedStatement.setString(1, stockid);
             mPreparedStatement.setString(2, stockName);
             mPreparedStatement.executeUpdate();
+            if(mConnection != null) {
+                mConnection.close();
+                mConnection = null;
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
