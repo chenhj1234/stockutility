@@ -35,11 +35,12 @@ csvFile: hdr row+;
 
 hdr : row ;
 
-row : field (',' field)* '\r'? '\n' ;
+row : (field (',' (field|))*)? '\r'? '\n' ;
 
 field
     : TEXT
     | STRING
+    | '=' STRING
     ;
 
 TEXT   : ~[,\n\r"{}]+ ;

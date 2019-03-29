@@ -23,22 +23,38 @@ public class StockSqlUtil {
     private PreparedStatement mPreparedStatement = null;
     private String serverName = "10.20.70.136";
     private String mydatabase = "stock_identifier_alpha";
-    private String tblStockId = "stockid";
-    public String dailyInfoTable = "daily_info_table";
-    public String monthlyEarnTable = "monthly_earn_table";
-    public String annuallyInfoTable = "annual_info_table";
-    public String annualDividendTable = "annual_share_table";
-    public String seasonEarningInfoTable = "season_info_table";
-    public String annualEarningShareTable = "annural_earning_share_table";
-    public String seasonEarningShareTable = "season_earning_share_table";
-    public String buyinTableAnalysis = "buyin_table_analysis";
-    public String buyinTable = "buyin_table";
+    private final String tblStockId = "stockid";
+
+    public final String tblStockIdUpdate = "stockid_for_update";
+    public final String dailyInfoTable = "daily_info_table";
+    public final String monthlyEarnTable = "monthly_earn_table";
+    public final String annuallyInfoTable = "annual_info_table";
+    public final String annualDividendTable = "annual_share_table";
+    public final String seasonEarningInfoTable = "season_info_table";
+    public final String annualEarningShareTable = "annural_earning_share_table";
+    public final String seasonEarningShareTable = "season_earning_share_table";
+    public final String buyinTableAnalysis = "buyin_table_analysis";
+    public final String buyinTable = "buyin_table";
+    public final String watchTable = "watch_table";
+    public final String watchBuyinTable = "watch_buyin_table";
+    public final String watchBuyinHistTable = "watch_buyin_hist_table";
+    public final String watchBuyinPerformanceTable = "watch_buyin_performance";
+    public final String watchBuyinAnalysisTable = "watch_buyin_table_analysis";
+    // With regular daily buyin, the stockid and date will be checked, if matched, not buyin
+    public static final int BUYIN_REGULAR_DAILY = 0;
+    // With regular daily buyin, the stockid will be checked, if matched, buyin, add amount and count avarage prise
+    public static final int BUYIN_ADD_AVG = 1;
+
     private String url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
 
     private String username = "holmas";
     private String password = "chenhj";
     private String table_stockid = mydatabase + "." + tblStockId;
     private String driverName = "com.mysql.cj.jdbc.Driver";
+
+    public String getTblStockIdUpdate() {
+        return tblStockIdUpdate;
+    }
 
     private boolean connectToServer() {
         try {
@@ -423,12 +439,12 @@ public class StockSqlUtil {
         }
     }
 
-    java.sql.Date convertJavaDateToMySQL(Date date) {
+    public java.sql.Date convertJavaDateToMySQL(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         return java.sql.Date.valueOf(dateFormat.format(date));
     }
 
-    String convertJavaDateToMySQLStr(Date date) {
+    public String convertJavaDateToMySQLStr(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         return dateFormat.format(date);
     }
@@ -445,35 +461,59 @@ public class StockSqlUtil {
     }
     ArrayList<String> insertData = null;
     String insertTableName;
-    ArrayList<String> initInsertTable() {
+    public ArrayList<String> initInsertTable() {
         insertData = new ArrayList<>();
         return insertData;
     }
-    void insertNullValue(String name, ArrayList<String> aList) {
+    public void insertNullValue(String name) {
+        String insertStr = "null";
+        insertData.add(insertStr);
+    }
+    public void insertValue(String name, String value) {
+        String insertStr = "'" + value + "'";
+        insertData.add(insertStr);
+    }
+    public void insertValue(String name, int value) {
+        String insertStr = "" + value;
+        insertData.add(insertStr);
+    }
+    public void insertValue(String name, float value) {
+        String insertStr = "" + value;
+        insertData.add(insertStr);
+    }
+    public void insertValue(String name, Date value) {
+        String insertStr = "'" + convertJavaDateToMySQLStr(value) + "'";
+        insertData.add(insertStr);
+    }
+    public void insertValue(String name, boolean value) {
+        String insertStr = "'" + (value?1:0) + "'";
+        insertData.add(insertStr);
+    }
+    public void insertNullValue(String name, ArrayList<String> aList) {
         String insertStr = "null";
         aList.add(insertStr);
     }
-    void insertValue(String name, String value, ArrayList<String> aList) {
+    public void insertValue(String name, String value, ArrayList<String> aList) {
         String insertStr = "'" + value + "'";
         aList.add(insertStr);
     }
-    void insertValue(String name, int value, ArrayList<String> aList) {
+    public void insertValue(String name, int value, ArrayList<String> aList) {
         String insertStr = "" + value;
         aList.add(insertStr);
     }
-    void insertValue(String name, float value, ArrayList<String> aList) {
+    public void insertValue(String name, float value, ArrayList<String> aList) {
         String insertStr = "" + value;
         aList.add(insertStr);
     }
-    void insertValue(String name, Date value, ArrayList<String> aList) {
+    public void insertValue(String name, Date value, ArrayList<String> aList) {
         String insertStr = "'" + convertJavaDateToMySQLStr(value) + "'";
         aList.add(insertStr);
     }
-    void insertValue(String name, boolean value, ArrayList<String> aList) {
+    public void insertValue(String name, boolean value, ArrayList<String> aList) {
         String insertStr = "'" + (value?1:0) + "'";
         aList.add(insertStr);
     }
-    void insertIntoTable(String tab, ArrayList<String> aList) {
+    public void insertIntoTable(String tab, ArrayList<String> aList) {
         insertTableName = tab;
         String insertValueStr = aList.get(0);
 
@@ -497,7 +537,32 @@ public class StockSqlUtil {
             System.exit(1);
         }
     }
-    Date convertMySQLDateToJava(java.sql.Date sqlDate) {
+    public void insertIntoTable(String tab) {
+        insertTableName = tab;
+
+        String insertValueStr = insertData.get(0);
+
+        for(int i = 1; i < insertData.size(); i++) {
+            insertValueStr += " , " + insertData.get(i);
+        }
+
+        String query = "insert into " + insertTableName + " values ( " + insertValueStr + " )";
+        if(DEBUG_SQL_CMD) System.out.println(query);
+        try {
+            connectToServer();
+            mStatement.executeUpdate(query);
+            if(mConnection != null) {
+                mConnection.close();
+                mConnection = null;
+            }
+            if(DEBUG_VERBOSE) System.out.println("insert success");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("insert failed");
+            System.exit(1);
+        }
+    }
+    public Date convertMySQLDateToJava(java.sql.Date sqlDate) {
         String dateStr = sqlDate.toString();
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         try {
@@ -512,6 +577,28 @@ public class StockSqlUtil {
         String tableName = dailyInfoTable;
         String dateStr = convertJavaDateToMySQLStr(date);
         String checkQuery = "select * from " + tableName + " where stockid = " + stockid + " and date = '" + dateStr + "';";
+        float retr = 0;
+        try {
+            connectToServer();
+            mResultSet = mStatement.executeQuery(checkQuery);
+            if (mResultSet.next()) {
+                mBuyinReturnRatio = retr = mResultSet.getFloat("returnratio");
+                mBuyinPrise = mResultSet.getFloat("dealprise");
+            }
+            mResultSet.close();
+            if(mConnection != null) {
+                mConnection.close();
+                mConnection = null;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+            retr = -1;
+        }
+        return retr;
+    }
+    float getLastReturnRatio(String stockid) {
+        String tableName = dailyInfoTable;
+        String checkQuery = "select * from " + tableName + " where stockid = " + stockid + " order by date desc;";
         float retr = 0;
         try {
             connectToServer();
@@ -546,6 +633,61 @@ public class StockSqlUtil {
             insertIntoTable("buyin_table", aList);
         } else {
             if(DEBUG_VERBOSE) System.out.println("stockid:" + stockid + " date:" + dateStr + " already bought");
+        }
+        return true;
+    }
+    public boolean buyin(String stockid, String tableName, int amount, String dateStr, float prise, int sind, String sdec, float rr, int buyin_method) {
+        boolean idExist = checkIdExistInTable(tableName, stockid);
+        boolean idDateExist = checkIdExistInTable(tableName, stockid, "buyday", dateStr);
+        //If we do daily regular buyin with no date&stockid record, or we get no such stockid bought, bought it
+        // We should apply BUYIN_REGULAR_DAILY on history database
+        if(((buyin_method == BUYIN_REGULAR_DAILY) && (!idDateExist)) ||
+                (!idExist)) {
+            ArrayList<String> aList = initInsertTable();
+            insertValue("stockid", stockid, aList);
+            insertValue("buyday", dateStr, aList);
+            insertNullValue("sellday", aList);
+            insertValue("amount", amount, aList);
+            insertValue("prise", prise, aList);
+            insertValue("strategyindex", sind, aList);
+            insertValue("strategydescription", sdec, aList);
+            insertValue("returnratio", rr, aList);
+            insertIntoTable(tableName, aList);
+        } else if(buyin_method == BUYIN_ADD_AVG && idExist){
+            // We should apply BUYIN_ADD_AVG on buyin for brief database
+            if(DEBUG_VERBOSE) System.out.println("stockid:" + stockid + " date:" + dateStr + " already bought, buyin add and count average");
+            int bought_amount = 0;
+            float bought_prise = 0;
+            initSelectTable();
+            addSelCol("amount");
+            addSelCol("prise");
+            addSelParmValue("stockid", stockid);
+            addSelOrder("buyday", false);
+            ResultSet mResSet = performSelectTable(tableName);
+            try {
+                if (mResSet.next()) {
+                    bought_prise = mResSet.getFloat("prise");
+                    bought_amount = mResSet.getInt("amount");
+                }
+                mResSet.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            finishSelectQuery();
+            prise = (prise * amount + bought_amount * bought_prise) / (amount + bought_amount);
+            amount = amount + bought_amount;
+            initUpdateTable();
+            addUpdateCol("buyday", dateStr);
+            addUpdateCol("sellday");
+            addUpdateCol("amount", amount);
+            addUpdateCol("prise", prise);
+            addUpdateCol("strategyindex", sind);
+            addUpdateCol("strategydescription", sdec);
+            addUpdateCol("returnratio", rr);
+            addUpdateParam("stockid", stockid);
+            performUpdateTable(tableName);
+        } else {
+            if(DEBUG_VERBOSE) System.out.println("stockid:" + stockid + " date:" + dateStr + " already bought, ignore");
         }
         return true;
     }
@@ -795,42 +937,42 @@ public class StockSqlUtil {
     ArrayList<String> parmData = null;
     ArrayList<String> orderData = null;
 
-    void initSelectTable() {
+    public void initSelectTable() {
         colData = new ArrayList<>();
         parmData = new ArrayList<>();
         orderData = new ArrayList<>();
     }
-    void addSelCol(String name) {
+    public void addSelCol(String name) {
         colData.add(name);
     }
-    void addOrder(String name, boolean inc) {
+    public void addSelOrder(String name, boolean inc) {
         if(inc) {
             orderData.add(name + " asc");
         } else {
             orderData.add(name + " desc");
         }
     }
-    void addSelParmValue(String name, String value) {
+    public void addSelParmValue(String name, String value) {
         String insertStr = name + " = '" + value + "'";
         parmData.add(insertStr);
     }
-    void addSelParmValue(String name, int value) {
+    public void addSelParmValue(String name, int value) {
         String insertStr = name + " = " + value;
         parmData.add(insertStr);
     }
-    void addSelParmValue(String name, float value) {
+    public void addSelParmValue(String name, float value) {
         String insertStr = name + " = " + value;
         parmData.add(insertStr);
     }
-    void addSelParmValue(String name, Date value) {
+    public void addSelParmValue(String name, Date value) {
         String insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
         parmData.add(insertStr);
     }
-    void addSelParmValue(String name, boolean value) {
+    public void addSelParmValue(String name, boolean value) {
         String insertStr = name + " = '" + (value?1:0) + "'";
         parmData.add(insertStr);
     }
-    ResultSet performSelectTable(String tab) {
+    public ResultSet performSelectTable(String tab) {
         String selColStr = "select ";
         if(colData.size() == 0) {
             selColStr += " * ";
@@ -866,7 +1008,7 @@ public class StockSqlUtil {
         return null;
     }
 
-    void finishSelectQuery() {
+    public void finishSelectQuery() {
         try {
             if(mConnection != null) {
                 mConnection.close();
@@ -913,8 +1055,8 @@ public class StockSqlUtil {
         initSelectTable();
         addSelCol("earn_per_share");
         addSelParmValue("stockid",stockid);
-        addOrder("year", false);
-        addOrder("season", false);
+        addSelOrder("year", false);
+        addSelOrder("season", false);
         ResultSet resSet = performSelectTable(tableName);
         try {
             int i = 0;
@@ -936,7 +1078,7 @@ public class StockSqlUtil {
         initSelectTable();
         addSelCol("earn_per_share");
         addSelParmValue("stockid",stockid);
-        addOrder("year", false);
+        addSelOrder("year", false);
         ResultSet resSet = performSelectTable(tableName);
         try {
             int i = 0;
@@ -958,7 +1100,7 @@ public class StockSqlUtil {
         initSelectTable();
         addSelCol("total_dividend");
         addSelParmValue("stockid",stockid);
-        addOrder("year", false);
+        addSelOrder("year", false);
         ResultSet resSet = performSelectTable(tableName);
         try {
             int i = 0;
@@ -1021,11 +1163,11 @@ public class StockSqlUtil {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        getInfoForAnalysis(stockid, performEnt);
-        getSeasonEarnForAnalysis(stockid, performEnt);
-        getAnnualEarnForAnalysis(stockid, performEnt);
-        getAnnualDividendForAnalysis(stockid, performEnt);
         if(performEnt.count != 0 && performEnt.perform != 0) {
+            getInfoForAnalysis(stockid, performEnt);
+            getSeasonEarnForAnalysis(stockid, performEnt);
+            getAnnualEarnForAnalysis(stockid, performEnt);
+            getAnnualDividendForAnalysis(stockid, performEnt);
             updatePerformance(stockid, performEnt);
             updateBuyinAnalysis(stockid, performEnt);
         }
@@ -1052,57 +1194,57 @@ public class StockSqlUtil {
     ArrayList<String> updateColData = null;
     ArrayList<String> updateParmData = null;
 
-    void initUpdateTable() {
+    public void initUpdateTable() {
         updateColData = new ArrayList<>();
         updateParmData = new ArrayList<>();
     }
-    void addUpdateCol(String name) {
+    public void addUpdateCol(String name) {
         updateColData.add(name + " = null");
     }
-    void addUpdateCol(String name, String value) {
+    public void addUpdateCol(String name, String value) {
         String insertStr = name + " = '" + value + "'";
         updateColData.add(insertStr);
     }
-    void addUpdateCol(String name, int value) {
+    public void addUpdateCol(String name, int value) {
         String insertStr = name + " = " + value;
         updateColData.add(insertStr);
     }
-    void addUpdateCol(String name, float value) {
+    public void addUpdateCol(String name, float value) {
         String insertStr = name + " = " + value;
         updateColData.add(insertStr);
     }
-    void addUpdateCol(String name, Date value) {
+    public void addUpdateCol(String name, Date value) {
         String insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
         updateColData.add(insertStr);
     }
-    void addUpdateCol(String name, boolean value) {
+    public void addUpdateCol(String name, boolean value) {
         String insertStr = name + " = '" + (value?1:0) + "'";
         updateColData.add(insertStr);
     }
-    void addUpdateParam(String name) {
+    public void addUpdateParam(String name) {
         updateParmData.add(name + " = null");
     }
-    void addUpdateParam(String name, String value) {
+    public void addUpdateParam(String name, String value) {
         String insertStr = name + " = '" + value + "'";
         updateParmData.add(insertStr);
     }
-    void addUpdateParam(String name, int value) {
+    public void addUpdateParam(String name, int value) {
         String insertStr = name + " = " + value;
         updateParmData.add(insertStr);
     }
-    void addUpdateParam(String name, float value) {
+    public void addUpdateParam(String name, float value) {
         String insertStr = name + " = " + value;
         updateParmData.add(insertStr);
     }
-    void addUpdateParam(String name, Date value) {
+    public void addUpdateParam(String name, Date value) {
         String insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
         updateParmData.add(insertStr);
     }
-    void addUpdateParam(String name, boolean value) {
+    public void addUpdateParam(String name, boolean value) {
         String insertStr = name + " = '" + (value?1:0) + "'";
         updateParmData.add(insertStr);
     }
-    ResultSet performUpdateTable(String tab) {
+    public ResultSet performUpdateTable(String tab) {
         if(updateColData.size() <= 0) return null;
         String updateColStr = "Update " + tab + " set ";
         updateColStr += " " + updateColData.get(0);
@@ -1187,6 +1329,99 @@ public class StockSqlUtil {
             }
             addUpdateParam("stockid", stockid);
             performUpdateTable(tableName);
+        }
+    }
+
+    public void addWatchTable(ArrayList<StockListUtil.StockIdEntry> idEnt) {
+        for(int i = 0;i < idEnt.size() ; i++) {
+            StockListUtil.StockIdEntry e = idEnt.get(i);
+            // Check id exist
+            initSelectTable();
+            addSelCol("stockname");
+            addSelParmValue("stockid", e.id);
+            ResultSet rSet = performSelectTable("watch_table");
+            try {
+                if (rSet.next()) {
+                    rSet.close();
+                    finishSelectQuery();
+                    System.out.println("Record id:" + e.id + " name:" + e.name + " duplicated in database");
+                    continue;
+                }
+                rSet.close();
+            } catch(Exception err) {
+                err.printStackTrace();
+                break;
+            }
+            finishSelectQuery();
+            // Add into table
+            System.out.println("Adding record id:" + e.id + " name:" + e.name);
+            initInsertTable();
+            insertValue("stockid", e.id);
+            insertValue("stockname", e.name);
+            insertIntoTable("watch_table");
+        }
+    }
+
+    public void buyinWatchList() {
+        String tableName = watchTable;
+        String sid, sname;
+        ArrayList<String> idEnt = new ArrayList<>();
+        initSelectTable();
+        ResultSet rSet = performSelectTable(tableName);
+        try {
+            while (rSet.next()) {
+                sid = rSet.getString("stockid");
+                idEnt.add(sid);
+            }
+            rSet.close();
+        } catch(Exception err) {
+            err.printStackTrace();
+        }
+        finishSelectQuery();
+
+        String dateStr = convertJavaDateToMySQLStr(new Date());
+        for(int i = 0;i < idEnt.size() ; i++) {
+            // stockid	buyday	sellday	amount	prise	strategyindex	strategydescription	returnratio
+            getLastReturnRatio(idEnt.get(i));
+            tableName = watchBuyinTable;
+            buyin(idEnt.get(i), tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_REGULAR_DAILY);
+            tableName = watchBuyinHistTable;
+            buyin(idEnt.get(i), tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_REGULAR_DAILY);
+        }
+    }
+    public void buyinSingleStock(String stockid) {
+        String dateStr = convertJavaDateToMySQLStr(new Date());
+        getLastReturnRatio(stockid);
+        String tableName = watchBuyinTable;
+        buyin(stockid, tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_ADD_AVG);
+        tableName = watchBuyinHistTable;
+        buyin(stockid, tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_ADD_AVG);
+    }
+    public void analysisBuyinWatchList() {
+        String tableName = watchTable;
+        String sid, sname;
+        ArrayList<String> idEnt = new ArrayList<>();
+        initSelectTable();
+        ResultSet rSet = performSelectTable(tableName);
+        try {
+            while (rSet.next()) {
+                sid = rSet.getString("stockid");
+                idEnt.add(sid);
+            }
+            rSet.close();
+        } catch(Exception err) {
+            err.printStackTrace();
+        }
+        finishSelectQuery();
+
+        String dateStr = convertJavaDateToMySQLStr(new Date());
+        for(int i = 0;i < idEnt.size() ; i++) {
+            // stockid	buyday	sellday	amount	prise	strategyindex	strategydescription	returnratio
+            getLastReturnRatio(idEnt.get(i));
+            tableName = watchBuyinTable;
+            buyin(idEnt.get(i), tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_ADD_AVG);
+            tableName = watchBuyinHistTable;
+            buyin(idEnt.get(i), tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_REGULAR_DAILY);
         }
     }
 }

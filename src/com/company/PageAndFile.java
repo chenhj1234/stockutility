@@ -13,6 +13,7 @@ public class PageAndFile {
     final String dailyPriseUrl = "https://tw.stock.yahoo.com/q/ts?s=STOCK_ID";
     final String annualDividendUtl = "https://tw.stock.yahoo.com/d/s/dividend_STOCK_ID.html";
     final String earningUtl = "https://tw.stock.yahoo.com/d/s/earning_STOCK_ID.html";
+    public static final String currencyPage = "https://rate.bot.com.tw/xrt/flcsv/0/day";
     final String savedFilePath = "./saved_pages";
     String dateStr = "";
     BufferedReader openURLForRead(String url) {
@@ -117,6 +118,14 @@ public class PageAndFile {
         String sFile = createOutputFolder();
         sFile = sFile+"/earning_" + sId + ".html";
         if(writeURLToFile(sFile,sUrl)) {
+            return sFile;
+        }
+        return null;
+    }
+    public String getPageAndSave(String url, String storePath) {
+        String sFile = createOutputFolder();
+        sFile = sFile+"/" + storePath + ".html";
+        if(writeURLToFile(sFile,url)) {
             return sFile;
         }
         return null;

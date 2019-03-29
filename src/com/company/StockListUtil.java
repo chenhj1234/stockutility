@@ -11,11 +11,13 @@ public class StockListUtil {
     private String serverName = "10.20.70.136";
     private String mydatabase = "stock_identifier_alpha";
     private String tblStockId = "stockid";
+    private String tblStockIdUpdate = "stockid_for_update";
     private String url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
 
     private String username = "holmas";
     private String password = "chenhj";
     private String table_stockid = mydatabase + "." + tblStockId;
+    private String table_stockid_update = mydatabase + "." + tblStockIdUpdate;
     private String driverName = "com.mysql.cj.jdbc.Driver";
     private String getUrl() {
         url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
@@ -83,8 +85,8 @@ public class StockListUtil {
         }
     }
     public class StockIdEntry {
-        String id;
-        String name;
+        public String id;
+        public String name;
         public StockIdEntry(String nId, String nName) {
             id = nId;
             name = nName;
@@ -104,5 +106,65 @@ public class StockListUtil {
         } catch(Exception e) {
             e.printStackTrace();
         }
+    }
+    public void getStockListFromUpdatedList() {
+        try {
+            String tableName = table_stockid_update;
+            connectToServer();
+            mResultSet = mStatement.executeQuery("select * from " + tableName + " where length(stockid) = 4");
+            while (mResultSet.next()) {
+                String id = mResultSet.getString("stockid");
+                String name = mResultSet.getString("stockname");
+                System.out.println("Access id:" + id + " name:" + name);
+                stockIdList.add(new StockIdEntry(id, name));
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+    private int getIdInEntryList(ArrayList<StockIdEntry> ent, String id) {
+        for(int i = 0;i < ent.size();i++) {
+            if(ent.get(i).id.equals(id)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    private int getNameInEntryList(ArrayList<StockIdEntry> ent, String name) {
+        for(int i = 0;i < ent.size();i++) {
+            if(ent.get(i).name.equals(name)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    public ArrayList<StockIdEntry> getIdFromName(ArrayList<String> nl, ArrayList<String> il) {
+        int i,j;
+        ArrayList<StockIdEntry> idEnt = new ArrayList<>();
+        for(i = 0;i < nl.size(); i++) {
+            j = getNameInEntryList(stockIdList, nl.get(i));
+            if(j < 0) {
+                System.out.println("Can not find the stock " + nl.get(i) + ", ignore");
+                continue;
+            }
+            if(getNameInEntryList(idEnt, nl.get(i)) >= 0) {
+                System.out.println("Duplicated stock " + nl.get(i) + ", ignore");
+                continue;
+            }
+            idEnt.add(stockIdList.get(j));
+        }
+        for(i = 0;i < il.size(); i++) {
+            j = getIdInEntryList(stockIdList, il.get(i));
+            if(j < 0) {
+                System.out.println("Can not find the stock " + il.get(i) + ", ignore");
+                continue;
+            }
+            if(getIdInEntryList(idEnt, il.get(i)) >= 0) {
+                System.out.println("Duplicated stock " + il.get(i) + ", ignore");
+                continue;
+            }
+            idEnt.add(stockIdList.get(j));
+        }
+        return idEnt;
     }
 }

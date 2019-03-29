@@ -4,7 +4,10 @@ package com.company;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import sqlutil.StockSqlUtil;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.*;
@@ -12,7 +15,7 @@ import java.sql.*;
 public class CSVStackParser {
     CSVLexer mCsvLexer = null;
     CSVParser mCsvParser = null;
-    CSVStackParserListener mCsvListener = new CSVStackParserListener();
+    public CSVStackParserListener mCsvListener = new CSVStackParserListener();
     /* MySQL */
     private Connection mConnection = null;
     private Statement mStatement = null;
@@ -27,6 +30,9 @@ public class CSVStackParser {
     private String password = "chenhj";
     private String table_stockid = mydatabase + "." + tblStockId;
     private String driverName = "com.mysql.cj.jdbc.Driver";
+    private boolean DEBUG_TOKEN = false;
+    private boolean DEBUG_WRITE_DB = true;
+    private boolean DEBUG_READ_DB = false;
     private boolean connectToServer() {
         try {
             Class.forName(driverName); // here is the ClassNotFoundException
@@ -58,24 +64,35 @@ public class CSVStackParser {
         return false;
     }
     private boolean insertStockIntoIdTable(String stockid, String stockName, boolean checkDuplicate) {
-        try {
-            connectToServer();
-            if(checkDuplicate) {
-                if(checkIdExistInTable(table_stockid, stockid)) {
-                    return true;
-                }
-            }
-            mPreparedStatement = mConnection.prepareStatement("insert into  " + table_stockid + " values (?, ?)");
-            mPreparedStatement.setString(1, stockid);
-            mPreparedStatement.setString(2, stockName);
-            mPreparedStatement.executeUpdate();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        StockSqlUtil sutil = new StockSqlUtil();
+        String tableName = sutil.getTblStockIdUpdate();
+        if(!sutil.checkIdExistInTable(tableName,stockid)) {
+            System.out.println("insert " + stockid + " " + stockName);
+            sutil.initInsertTable();
+            sutil.insertValue("stockid", stockid);
+            sutil.insertValue("stockname", stockName);
+            sutil.insertIntoTable(tableName);
+        } else {
+            System.out.println("data duplicat " + stockid + " " + stockName);
         }
+//        try {
+//            connectToServer();
+//            if(checkDuplicate) {
+//                if(checkIdExistInTable(table_stockid, stockid)) {
+//                    return true;
+//                }
+//            }
+//            mPreparedStatement = mConnection.prepareStatement("insert into  " + table_stockid + " values (?, ?)");
+//            mPreparedStatement.setString(1, stockid);
+//            mPreparedStatement.setString(2, stockName);
+//            mPreparedStatement.executeUpdate();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return false;
     }
     private void printAllTableRow() {
@@ -106,16 +123,17 @@ public class CSVStackParser {
             return -1;
         }
         mCsvLexer = new CSVLexer(strInput);
-        /*
-        while (true) {
-            token = mCsvLexer.nextToken();
+
+        while (DEBUG_TOKEN) {
+            Token token = mCsvLexer.nextToken();
             if (token.getType() == Token.EOF) {
                 break;
             }
 
             System.out.println("Token: ‘" + token.getText() + "’" + " index:" + token.getType());
         }
-        */
+        if(DEBUG_TOKEN) mCsvLexer.reset();
+
         CommonTokenStream iTokens = new CommonTokenStream(mCsvLexer);
         mCsvParser = new CSVParser(iTokens);
         //System.out.println("+++" + mCsvParser.csfParagraph().getText());
@@ -126,7 +144,6 @@ public class CSVStackParser {
         walker.walk(mCsvListener, mCsvParser.csfParagraph());
         //mCsvListener.infoList.printOneEntry(0);
         //mCsvListener.infoList.printOneValue(0);
-        insertStockId(mCsvListener.infoList);
         return 1;
     }
 
@@ -139,9 +156,9 @@ public class CSVStackParser {
             if(!seString.matches("\\d+")) {
                 continue;
             }
-            System.out.println("insert " + seString + " " + senString);
-            insertStockIntoIdTable(seString, senString, true);
+            if(DEBUG_WRITE_DB) insertStockIntoIdTable(seString, senString, true);
         }
+        if(DEBUG_READ_DB) StartBdd();
     }
 
     public int parseCSVRow(String csvstr) {

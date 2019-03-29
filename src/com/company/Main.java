@@ -17,6 +17,8 @@ public class Main {
     private static boolean DEBUG_DATABASE_STOCK_APPLY_STRATEGY = true;
     private static boolean DEBUG_DATABASE_STOCK_COUNT_FORMANCE = true;
     private static boolean DEBUG_GET_PAGE = true;
+    private static boolean DEBUG_SWITCH_TO_STOCKID_UPDATE = true;
+
     private static String testStockId = "1102";
     private static void processArgs(String[] args) {
         for(int i = 0;i < args.length;i++) {
@@ -84,6 +86,19 @@ public class Main {
                         DEBUG_DATABASE_STOCK_COUNT_FORMANCE = false;
                     }
                     break;
+                case "-update-db":
+                    i++;
+                    if("no".equalsIgnoreCase(args[i])) {
+                        System.out.println("disable analysis db");
+                        DEBUG_DATABASE_STOCK_INSERT_BASIC = false;
+                        DEBUG_DATABASE_STOCK_INSERT_DAILY = false;
+                        DEBUG_DATABASE_STOCK_INSERT_DIVIDEND = false;
+                        DEBUG_DATABASE_STOCK_INSERT_EARNING = false;
+                        DEBUG_DATABASE_STOCK_ANALYSIS_RATIO = false;
+                        DEBUG_DATABASE_STOCK_APPLY_STRATEGY = false;
+                        DEBUG_DATABASE_STOCK_COUNT_FORMANCE = false;
+                    }
+                    break;
 
             }
         }
@@ -95,18 +110,84 @@ public class Main {
         if(DEBUG_SINGLE_STOCK) {
             StockSqlUtil stua = new StockSqlUtil();
             if(DEBUG_GET_PAGE) {
-                String savedFile = pf.getStockAndSave(testStockId);
-                String savedDailyFile = pf.getDailyPriseAndSave(testStockId);
-                String savedDividendFile = pf.getAnnualDividendAndSave(testStockId);
-                String saveEarningFile = pf.getEarningPageAndSave(testStockId);
-                System.out.println("processing basic info page:" + savedFile);
-                hWebPage.getWebPageFromFile(savedFile);
-                System.out.println("processing daily info page:" + savedDailyFile);
-                hWebPage.getDailyPrisePageFromFile(savedDailyFile);
-                System.out.println("processing dividend page:" + savedDividendFile);
-                hWebPage.getAnnualDividendPageFromFile(savedDividendFile);
-                System.out.println("processing earning info page:" + saveEarningFile);
-                hWebPage.getEarningPageFromFile(saveEarningFile);
+                int idx;
+                for(idx = 0;idx < 2;idx++) {
+                    String savedFile = pf.getStockAndSave(testStockId);
+                    if(savedFile == null) {
+                        System.out.println("Get basic info page failed, try again");
+                        continue;
+                    }
+                    System.out.println("processing basic info page:" + savedFile);
+                    hWebPage.getWebPageFromFile(savedFile);
+                    if(hWebPage.mPageListener != null &&
+                            hWebPage.mPageListener.infoListener != null &&
+                            hWebPage.mPageListener.infoListener.stockInfo != null){
+                        System.out.println("processing basic info page success");
+                        break;
+                    }
+                    System.out.println("processing basic info failed, try again");
+                }
+                if(idx == 2) {
+                    System.out.println("processing basic info failed 2 times, leave");
+                    System.exit(1);
+                }
+                for(idx = 0;idx < 2;idx++) {
+                    String savedDailyFile = pf.getDailyPriseAndSave(testStockId);
+                    if(savedDailyFile == null) {
+                        System.out.println("Get daily info page failed, try again");
+                        continue;
+                    }
+                    System.out.println("processing daily info page:" + savedDailyFile);
+                    hWebPage.getDailyPrisePageFromFile(savedDailyFile);
+                    if(hWebPage.mDailyPrisePageListener != null) {
+                        System.out.println("processing daily info page success");
+                        break;
+                    }
+                    System.out.println("processing daily info page failed, try again");
+                }
+                if(idx == 2) {
+                    System.out.println("processing daily info page failed 2 times, leave");
+                    System.exit(1);
+                }
+                for(idx = 0;idx < 2;idx++) {
+                    String savedDividendFile = pf.getAnnualDividendAndSave(testStockId);
+                    if(savedDividendFile == null) {
+                        System.out.println("Get dividend page failed, try again");
+                        continue;
+                    }
+                    System.out.println("processing dividend page:" + savedDividendFile);
+                    hWebPage.getAnnualDividendPageFromFile(savedDividendFile);
+                    if(hWebPage.mDividendListener != null && hWebPage.mDividendListener.divRecList != null) {
+                        System.out.println("processing dividend page success");
+                        break;
+                    }
+                    System.out.println("processing dividend page failed, try again");
+                }
+                if(idx == 2) {
+                    System.out.println("processing dividend page failed 2 times, leave");
+                    System.exit(1);
+                }
+                for(idx = 0;idx < 2;idx++) {
+                    String saveEarningFile = pf.getEarningPageAndSave(testStockId);
+                    if(saveEarningFile == null) {
+                        System.out.println("Get earning info page failed, try again");
+                        continue;
+                    }
+                    System.out.println("processing earning info page:" + saveEarningFile);
+                    hWebPage.getEarningPageFromFile(saveEarningFile);
+                    if(hWebPage.mEarningListener != null &&
+                            hWebPage.mEarningListener.searnAfterTaxListener != null &&
+                            hWebPage.mEarningListener.searnBeforeTaxListener != null &&
+                            hWebPage.mEarningListener.monthListener != null) {
+                        System.out.println("processing earning info page success");
+                        break;
+                    }
+                    System.out.println("processing earning info page failed, try again");
+                }
+                if(idx == 2) {
+                    System.out.println("processing earning info page failed 2 times, leave");
+                    System.exit(1);
+                }
             }
             if(DEBUG_DATABASE_STOCK_INSERT_DAILY) {
                 System.out.println("Adding daily db");
@@ -151,28 +232,124 @@ public class Main {
             StockListUtil su = null;
             if(DEBUG_DATABASE_STOCK) {
                 su = new StockListUtil();
-                su.getStockList();
+                if(DEBUG_SWITCH_TO_STOCKID_UPDATE) {
+                    // We update our list from "market" and "over the counter", and we limit with only 4 digit number stockid here
+                    su.getStockListFromUpdatedList();
+                } else {
+                    su.getStockList();
+                }
             }
             float total = 0, perform = 0;
+            boolean getPageSuccess = true;
             for (int i = 0; i < su.stockIdList.size(); i++) {
                 StockListUtil.StockIdEntry se = null;
                 if(DEBUG_DATABASE_STOCK) se = su.stockIdList.get(i);
+                System.out.println("Process item i:" + i + " id:" + se.id);
                 if(DEBUG_GET_PAGE) {
-
-                    String savedFile = pf.getStockAndSave(se.id);
-                    String savedDailyFile = pf.getDailyPriseAndSave(se.id);
-                    String savedDividendFile = pf.getAnnualDividendAndSave(se.id);
-                    System.out.println("item i:" + i + " basic info page:" + savedFile +
-                            " daily info page:" + savedDailyFile +
-                            " dividend:" + savedDividendFile);
-                    String saveEarningFile = pf.getEarningPageAndSave(se.id);
-                    System.out.println("processing earning info page:" + saveEarningFile);
-
-                    if (savedFile != null && savedDailyFile != null && savedDividendFile != null) {
+                    int idx;
+                    String savedFile = null, savedDailyFile = null, savedDividendFile = null, saveEarningFile = null;
+                    getPageSuccess = true;
+                    for(idx = 0;idx < 2;idx++) {
+                        savedFile = pf.getStockAndSave(se.id);
+                        if(savedFile == null) {
+                            System.out.println("Get basic info page failed, try again");
+                            continue;
+                        }
+                        System.out.println("processing basic info page:" + savedFile);
                         hWebPage.getWebPageFromFile(savedFile);
-                        hWebPage.getDailyPrisePageFromFile(savedDailyFile);
-                        hWebPage.getAnnualDividendPageFromFile(savedDividendFile);
-                        hWebPage.getEarningPageFromFile(saveEarningFile);
+                        if(hWebPage.mPageListener != null &&
+                                hWebPage.mPageListener.infoListener != null &&
+                                hWebPage.mPageListener.infoListener.stockInfo != null){
+                            System.out.println("processing basic info page success");
+                            break;
+                        }
+                        System.out.println("processing basic info failed, try again");
+                    }
+                    if(idx == 2) {
+                        System.out.println("processing basic info failed 2 times, leave");
+                        getPageSuccess = false;
+                    }
+                    if(getPageSuccess) {
+                        for (idx = 0; idx < 2; idx++) {
+                            savedDailyFile = pf.getDailyPriseAndSave(se.id);
+                            if (savedDailyFile == null) {
+                                System.out.println("Get daily info page failed, try again");
+                                continue;
+                            }
+                            System.out.println("processing daily info page:" + savedDailyFile);
+                            hWebPage.getDailyPrisePageFromFile(savedDailyFile);
+                            if (hWebPage.mDailyPrisePageListener != null) {
+                                System.out.println("processing daily info page success");
+                                break;
+                            }
+                            System.out.println("processing daily info page failed, try again");
+                        }
+                        if (idx == 2) {
+                            System.out.println("processing daily info page failed 2 times, leave");
+                            getPageSuccess = false;
+                        }
+                    }
+                    if(getPageSuccess) {
+                        for (idx = 0; idx < 2; idx++) {
+                            savedDividendFile = pf.getAnnualDividendAndSave(se.id);
+                            if (savedDividendFile == null) {
+                                System.out.println("Get dividend page failed, try again");
+                                continue;
+                            }
+                            System.out.println("processing dividend page:" + savedDividendFile);
+                            hWebPage.getAnnualDividendPageFromFile(savedDividendFile);
+                            if (hWebPage.mDividendListener != null && hWebPage.mDividendListener.divRecList != null) {
+                                System.out.println("processing dividend page success");
+                                break;
+                            }
+                            System.out.println("processing dividend page failed, try again");
+                        }
+                        if (idx == 2) {
+                            System.out.println("processing dividend page failed 2 times, leave");
+                            getPageSuccess = false;
+                        }
+                    }
+                    if(getPageSuccess) {
+                        for (idx = 0; idx < 2; idx++) {
+                            saveEarningFile = pf.getEarningPageAndSave(se.id);
+                            if (saveEarningFile == null) {
+                                System.out.println("Get earning info page failed, try again");
+                                continue;
+                            }
+                            System.out.println("processing earning info page:" + saveEarningFile);
+                            hWebPage.getEarningPageFromFile(saveEarningFile);
+                            if (hWebPage.mEarningListener != null &&
+                                    hWebPage.mEarningListener.searnAfterTaxListener != null &&
+                                    hWebPage.mEarningListener.searnBeforeTaxListener != null &&
+                                    hWebPage.mEarningListener.monthListener != null) {
+                                System.out.println("processing earning info page success");
+                                break;
+                            }
+                            System.out.println("processing earning info page failed, try again");
+                        }
+                        if (idx == 2) {
+                            System.out.println("processing earning info page failed 2 times, leave");
+                            getPageSuccess = false;
+                        }
+                    }
+
+//                    String savedFile = pf.getStockAndSave(se.id);
+//                    String savedDailyFile = pf.getDailyPriseAndSave(se.id);
+//                    String savedDividendFile = pf.getAnnualDividendAndSave(se.id);
+//                    System.out.println("item i:" + i + " basic info page:" + savedFile +
+//                            " daily info page:" + savedDailyFile +
+//                            " dividend:" + savedDividendFile);
+//                    String saveEarningFile = pf.getEarningPageAndSave(se.id);
+//                    System.out.println("processing earning info page:" + saveEarningFile);
+                    if(!getPageSuccess) {
+                        System.out.println("index i:" + i + " id:" + se.id + " get page failed, next");
+                        continue;
+                    }
+                    if (savedFile != null && savedDailyFile != null && savedDividendFile != null) {
+//                        hWebPage.getWebPageFromFile(savedFile);
+//                        hWebPage.getDailyPrisePageFromFile(savedDailyFile);
+//                        hWebPage.getAnnualDividendPageFromFile(savedDividendFile);
+//                        hWebPage.getEarningPageFromFile(saveEarningFile);
                         if(DEBUG_DATABASE_STOCK_INSERT_DAILY) {
                             StockSqlUtil stu = new StockSqlUtil();
                             HTMLParserDailyPriseListener listener = hWebPage.mDailyPrisePageListener;
