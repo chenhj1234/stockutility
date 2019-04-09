@@ -20,7 +20,7 @@ public class CSVStackParserListener extends CSVBaseListener {
         } else if(!findStockStart && !findOverTheCounter && !findCurrency && ctx.getText().contains("最後賣價")) {
             System.out.println("Find over the counter table start " + ctx.getText());
             findOverTheCounter = true;
-        } else if(!findStockStart && !findOverTheCounter && !findCurrency && ctx.getText().contains("USD,")) {
+        } else if(!findStockStart && !findOverTheCounter && !findCurrency && ctx.getText().contains("遠期30天")) {
             findCurrency = true;
         } else if(findStockStart) {
             for (int i = 0; i < ctx.field().size(); i++) {
@@ -67,8 +67,7 @@ public class CSVStackParserListener extends CSVBaseListener {
             } else {
                 System.out.println("Ignore invalid row " + ctx.getText());
             }
-        }
-        if(findStockStart) {
+        } else if(findCurrency) {
             for (int i = 0; i < ctx.field().size(); i++) {
                 CSVParser.FieldContext field = ctx.field(i);
                 if (field.STRING() != null) {

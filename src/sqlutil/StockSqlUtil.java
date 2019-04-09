@@ -40,6 +40,9 @@ public class StockSqlUtil {
     public final String watchBuyinHistTable = "watch_buyin_hist_table";
     public final String watchBuyinPerformanceTable = "watch_buyin_performance";
     public final String watchBuyinAnalysisTable = "watch_buyin_table_analysis";
+    public final String dailyExchangeRate = "daily_exchange_rate";
+    public final String buyinPerformance = "buyin_performance";
+    public final String buyinPerformanceAccu = "buyin_performance_accu";
     // With regular daily buyin, the stockid and date will be checked, if matched, not buyin
     public static final int BUYIN_REGULAR_DAILY = 0;
     // With regular daily buyin, the stockid will be checked, if matched, buyin, add amount and count avarage prise
@@ -73,7 +76,8 @@ public class StockSqlUtil {
         }
         return false;
     }
-    public boolean insertDailyTable(String stockid, Date date, float buyin, float sellout, float dealprise, float shift, int amount) {
+
+    public boolean insertDailyTable(String stockid, Date date, float buyin, float sellout, float dealprise, float shift, int amount, boolean updaterec) {
         String tableName = dailyInfoTable;
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         DateFormat timeFormat = new SimpleDateFormat("hh:mm:ss");
@@ -85,37 +89,50 @@ public class StockSqlUtil {
         timeString = "'" + timeFormat.format(date) + "'";
         if(checkIdExistInTable(tableName, stockid, dateFormat.format(date))) {
 //            PreparedStatement stmt = mConnection.prepareStatement("update`user` set `exp` = '666'  where `username` = '"+loggedusername+"'");
-            if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " date:" + dateFormat.format(date) + " exist, try update");
-            try {
-                connectToServer();
+            if(updaterec) {
+                if (DEBUG_VERBOSE)
+                    System.out.println("id:" + stockid + " date:" + dateFormat.format(date) + " exist, try update");
+                try {
+//                initUpdateTable();
+//                addUpdateCol("buyin", buyin);
+//                addUpdateCol("sellout", sellout);
+//                addUpdateCol("dealprise", dealprise);
+//                addUpdateCol("amount", amount);
+//                addUpdateCol("time", timeFormat.format(date));
+//                addUpdateCol("returnratio", 0);
+//                addUpdateParam("stockid", stockid);
+//                addUpdateParam("date", dateFormat.format(date));
+//                performUpdateTable(tableName);
+                    connectToServer();
 
-                PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-                        " SET buyin = ?, sellout = ? , dealprise = ? , amount = ? , time = ? , returnratio = ? " +
-                        "WHERE stockid = ? AND date = ?");
-                stmt.setFloat(1, buyin);
-                stmt.setFloat(2, sellout);
-                stmt.setFloat(3, dealprise);
-                stmt.setInt(4, amount);
-                java.sql.Time sqlTime = java.sql.Time.valueOf(timeFormat.format(date));
-                stmt.setTime(5, sqlTime);
-                stmt.setFloat(6, 0);
-                stmt.setString(7, stockid);
-                java.sql.Date sqlDate = java.sql.Date.valueOf(dateFormat.format(date));
-                stmt.setDate(8, sqlDate);
+                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
+                            " SET buyin = ?, sellout = ? , dealprise = ? , amount = ? , time = ? , returnratio = ? " +
+                            "WHERE stockid = ? AND date = ?");
+                    stmt.setFloat(1, buyin);
+                    stmt.setFloat(2, sellout);
+                    stmt.setFloat(3, dealprise);
+                    stmt.setInt(4, amount);
+                    java.sql.Time sqlTime = java.sql.Time.valueOf(timeFormat.format(date));
+                    stmt.setTime(5, sqlTime);
+                    stmt.setFloat(6, 0);
+                    stmt.setString(7, stockid);
+                    java.sql.Date sqlDate = java.sql.Date.valueOf(dateFormat.format(date));
+                    stmt.setDate(8, sqlDate);
 //                PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
 //                        " SET buyin = " + buyin + ", sellout = ? , dealprise = ? , amount = ? , time = ? " +
 //                        "WHERE stockid = ? AND date = ?");
-                stmt.executeUpdate();
-                stmt.close();
-                if(DEBUG_VERBOSE) System.out.println("update success");
-                if(mConnection != null) {
-                    mConnection.close();
-                    mConnection = null;
-                }
+                    stmt.executeUpdate();
+                    stmt.close();
+                    if (DEBUG_VERBOSE) System.out.println("update success");
+                    if (mConnection != null) {
+                        mConnection.close();
+                        mConnection = null;
+                    }
 
-            } catch(Exception e) {
-                e.printStackTrace();
-                System.out.println("update fail");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.out.println("update fail");
+                }
             }
         } else {
             String query = "insert into " + tableName + " values ( '" + stockid + "', " +
@@ -213,6 +230,7 @@ public class StockSqlUtil {
             if(DEBUG_SQL_CMD) System.out.println(query);
             connectToServer();
             mStatement.executeUpdate(query);
+            mStatement.close();
             if(mConnection != null) {
                 mConnection.close();
                 mConnection = null;
@@ -247,6 +265,7 @@ public class StockSqlUtil {
                 if(DEBUG_SQL_CMD) System.out.println(query);
                 connectToServer();
                 mStatement.executeUpdate(query);
+                mStatement.close();
                 if(mConnection != null) {
                     mConnection.close();
                     mConnection = null;
@@ -373,6 +392,29 @@ public class StockSqlUtil {
         return retval;
     }
 
+    public boolean checkColumnExist(String tableName, String colname1, String colval1 , String colname2, String colval2) {
+        String checkQuery = "";
+        checkQuery = "select * from " + tableName +
+                " where " +colname1 + " = '" + colval1 + "' and "+ colname2+" = '" + colval2 + "'";
+        boolean retval = false;
+        if(DEBUG_SQL_CMD) System.out.println("query:" + checkQuery);
+        try {
+            connectToServer();
+            mResultSet = mStatement.executeQuery(checkQuery);
+            if(mResultSet.next()) {
+                retval = true;
+            }
+            mResultSet.close();
+            if(mConnection != null) {
+                mConnection.close();
+                mConnection = null;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return retval;
+    }
+
     public boolean checkIdExistInTable(String tableName, String stockid, String colName, String colStr) {
         String checkQuery = "";
         checkQuery = "select * from " + tableName +
@@ -400,7 +442,7 @@ public class StockSqlUtil {
         String checkQuery;
         String tableName = annualDividendTable;
         checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' and year = 106";
+                " where stockid = '" + stockid + "' order by year desc";
         float tdiv = 0, sdiv = 0, prz = 0;
         try {
             connectToServer();
@@ -526,6 +568,7 @@ public class StockSqlUtil {
         try {
             connectToServer();
             mStatement.executeUpdate(query);
+            mStatement.close();
             if(mConnection != null) {
                 mConnection.close();
                 mConnection = null;
@@ -551,6 +594,7 @@ public class StockSqlUtil {
         try {
             connectToServer();
             mStatement.executeUpdate(query);
+            mStatement.close();
             if(mConnection != null) {
                 mConnection.close();
                 mConnection = null;
@@ -618,7 +662,23 @@ public class StockSqlUtil {
         }
         return retr;
     }
-    float ratio_threshold = 10;
+    float getRoe(String stockid) {
+        String tableName = annuallyInfoTable;
+        initSelectTable();
+        addSelCol("roe");
+        addSelParmValue("stockid", stockid);
+        addSelParmValue("year", String.valueOf(getThisYear()));
+        ResultSet rSet = performSelectTable(tableName);
+        float roe = -100;
+        try {
+            if(rSet.next()) {
+                roe = rSet.getFloat("roe");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return roe;
+    }
     public boolean buyin(String stockid, int amount, String dateStr, float prise, int sind, String sdec, float rr) {
         if(!checkIdExistInTable("buyin_table", stockid, "buyday", dateStr)) {
             ArrayList<String> aList = initInsertTable();
@@ -691,12 +751,34 @@ public class StockSqlUtil {
         }
         return true;
     }
+    /*
+    * strategy 1: returnratio > 10 & roe > 0
+    * stratego 2: returnratio > 8 & roe > 1
+    * */
+    float ratio_threshold = 10;
+    class StrategyParameter {
+        public float ratio_threshold;
+        public float roe;
+        public boolean noNeedAnnounced = false;
+        public StrategyParameter(float rr, float re, boolean an) {
+            ratio_threshold = rr;
+            roe = re;
+            noNeedAnnounced = an;
+        }
+    }
+    StrategyParameter param1 = new StrategyParameter(10,-10, false);
+    StrategyParameter param2 = new StrategyParameter(8,1, true);
     public void applyStrategy(String stockid, int strategyIndex) {
         String dateStr = convertJavaDateToMySQLStr(new Date());
-        float retr = getReturnRatio(stockid, convertStrToJavaDate(dateStr));
-        if(retr > ratio_threshold) {
+        float retr = getLastReturnRatio(stockid);
+        float roe = getRoe(stockid);
+        boolean announced = checkThisYearShareAnnounced(stockid);
+        if(retr > param1.ratio_threshold && roe > param1.roe && (announced || param1.noNeedAnnounced)) {
             if(DEBUG_VERBOSE) System.out.println("stockid:" + stockid + " rr:" + retr + " buyin, threshold:" + ratio_threshold);
-            buyin(stockid, 1,dateStr,mBuyinPrise,1,"ratio > 10", mBuyinReturnRatio);
+            buyin(stockid, 1,dateStr,mBuyinPrise,1,"ratio > " + param1.ratio_threshold + " roe > " + param1.roe + " share:" + param1.noNeedAnnounced, mBuyinReturnRatio);
+        } else if(retr > param2.ratio_threshold && roe >  param1.roe && (announced || param1.noNeedAnnounced)) {
+            if(DEBUG_VERBOSE) System.out.println("stockid:" + stockid + " rr:" + retr + " buyin, threshold:" + ratio_threshold);
+            buyin(stockid, 1,dateStr,mBuyinPrise,2,"ratio > " + param2.ratio_threshold + " roe > " + param2.roe + " share:" + param2.noNeedAnnounced, mBuyinReturnRatio);
         }
         //System.out.println("stock id:" + stockid + " rr:" + retr);
     }
@@ -917,11 +999,14 @@ public class StockSqlUtil {
     }
     class performanceEntry {
         float avgprise = 0;
+        float lastprise = 0;
         float perform = 0;
         int count = 0;
         float returnratio = 0;
+        /* Last buy date in buyin table */
         java.sql.Date buyinDate = null;
-        java.sql.Date dealDate = null;
+        /* Today */
+        java.sql.Date checkDate = null;
         float min = 0;
         float max = 0;
         float roe = 0;
@@ -1128,6 +1213,7 @@ public class StockSqlUtil {
         float total = 0;
         java.sql.Date buyDate = null, lastBuyDay = null;
         performanceEntry performEnt = new performanceEntry();
+        rr = getLastReturnRatio(stockid);/*mResultSet.getFloat("returnratio");*/
         try {
             connectToServer();
             mResultSet = mStatement.executeQuery(checkQuery);
@@ -1137,7 +1223,6 @@ public class StockSqlUtil {
                 if((lastBuyDay == null) || lastBuyDay.before(buyDate)) {
                     lastBuyDay = buyDate;
                 }
-                rr = mResultSet.getFloat("returnratio");
                 if(dealprz > max) max = dealprz;
                 if(dealprz < min) min = dealprz;
                 total += (prz - dealprz);
@@ -1150,10 +1235,11 @@ public class StockSqlUtil {
                 performEnt.perform = total / totalPrise;
                 performEnt.avgprise = totalPrise / count;
                 performEnt.buyinDate = lastBuyDay;
-                performEnt.dealDate = null;
+                performEnt.checkDate = convertJavaDateToMySQL(new Date());
                 performEnt.returnratio = rr;
                 performEnt.min = min;
                 performEnt.max = max;
+                performEnt.lastprise = prz;
             }
             if(DEBUG_VERBOSE) System.out.println("performance, total:" + total);
             if(mConnection != null) {
@@ -1176,18 +1262,61 @@ public class StockSqlUtil {
 
     public void updatePerformance(String stockid, performanceEntry pe) {
         Date todayDate = new Date();
-        if(!checkIdExistInTable("buyin_performance", stockid,"dealdate", convertJavaDateToMySQLStr(todayDate) )) {
+        String tableName = buyinPerformance;
+
+        if(!checkIdExistInTable(tableName, stockid,"checkdate",  pe.checkDate.toString())) {
             ArrayList<String> aList = initInsertTable();
             insertValue("stockid", stockid, aList);
             insertValue("averageprise", pe.avgprise, aList);
+            insertValue("lastprise", pe.lastprise, aList);
             insertValue("returnratio", pe.returnratio, aList);
             insertValue("performance", pe.perform, aList);
             insertValue("dealdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.buyinDate, aList);
+            insertValue("checkdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.checkDate, aList);
             insertValue("sold", false, aList);
             insertValue("buyincount", pe.count, aList);
-            insertIntoTable("buyin_performance", aList);
+            insertIntoTable(tableName, aList);
         } else {
-            if(DEBUG_VERBOSE) System.out.println("updatePerformance Date exist : stockid:" + stockid + " date:" + todayDate);
+            if(DEBUG_VERBOSE) System.out.println("updatePerformance Date exist : stockid:" + stockid + " date:" + todayDate + ", try update");
+            initUpdateTable();
+            addUpdateCol("averageprise", pe.avgprise);
+            addUpdateCol("lastprise", pe.lastprise);
+            addUpdateCol("returnratio", pe.returnratio);
+            addUpdateCol("performance", pe.perform);
+            addUpdateCol("dealdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.buyinDate);
+            addUpdateCol("sold", false);
+            addUpdateCol("buyincount", pe.count);
+            addUpdateParam("stockid", stockid);
+            addUpdateParam("checkdate", pe.checkDate);
+            performUpdateTable(tableName);
+        }
+
+        tableName = buyinPerformanceAccu;
+        if(!checkIdExistInTable(tableName, stockid)) {
+            initInsertTable();
+            insertValue("stockid", stockid);
+            insertValue("averageprise", pe.avgprise);
+            insertValue("lastprise", pe.lastprise);
+            insertValue("returnratio", pe.returnratio);
+            insertValue("performance", pe.perform);
+            insertValue("dealdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.buyinDate);
+            insertValue("checkdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.checkDate);
+            insertValue("sold", false);
+            insertValue("buyincount", pe.count);
+            insertIntoTable(tableName);
+        } else {
+            if(DEBUG_VERBOSE) System.out.println("update performance accumulate exist : stockid:" + stockid + ", try update");
+            initUpdateTable();
+            addUpdateCol("averageprise", pe.avgprise);
+            addUpdateCol("lastprise", pe.lastprise);
+            addUpdateCol("returnratio", pe.returnratio);
+            addUpdateCol("performance", pe.perform);
+            addUpdateCol("dealdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.buyinDate);
+            addUpdateCol("checkdate", /*convertJavaDateToMySQLStr(todayDate)*/ pe.checkDate);
+            addUpdateCol("sold", false);
+            addUpdateCol("buyincount", pe.count);
+            addUpdateParam("stockid", stockid);
+            performUpdateTable(tableName);
         }
     }
 
@@ -1274,25 +1403,54 @@ public class StockSqlUtil {
         return null;
     }
 
-
-
+    public int getThisYear() {
+        Calendar cal = Calendar.getInstance();
+        int year = cal.get(Calendar.YEAR);
+        return year;
+    }
+    public boolean checkThisYearShareAnnounced(String stockid) {
+        Calendar cal = Calendar.getInstance();
+        int year = cal.get(Calendar.YEAR);
+        int annualyear = year - 1911 - 1;
+        String yearStr = String.valueOf(annualyear);
+        String tableName = annualDividendTable;
+        boolean yearDivAnnounced = false;
+        initSelectTable();
+        addSelParmValue("stockid" , stockid);
+        addSelParmValue("year", yearStr);
+        ResultSet resset = performSelectTable(tableName);
+        try {
+            if (resset.next()) {
+                yearDivAnnounced = true;
+            }
+            resset.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        finishSelectQuery();
+        return yearDivAnnounced;
+    }
 
     public void updateBuyinAnalysis(String stockid, performanceEntry pe) {
         String tableName= buyinTableAnalysis;
         Date todayDate = new Date();
+        boolean divAnnounced = checkThisYearShareAnnounced(stockid);
         if(!checkIdExistInTable(tableName, stockid)) {
             ArrayList<String> aList = initInsertTable();
             insertValue("stockid", stockid, aList);
             insertValue("lastbuydate", pe.buyinDate, aList);
+            insertValue("checkdate", pe.checkDate, aList);
             insertValue("amount", pe.count, aList);
             insertValue("avg_prise", pe.avgprise, aList);
             insertValue("returnratio", pe.returnratio, aList);
+            insertValue("lastprise", pe.lastprise, aList);
             insertValue("min_prise", pe.min, aList);
             insertValue("max_prise", pe.max, aList);
             insertValue("performance", pe.perform, aList);
             insertValue("roe", pe.roe, aList);
             insertValue("roa", pe.roa, aList);
             insertValue("book_value", pe.nv, aList);
+            insertValue("thisyear", divAnnounced, aList);
             insertValue("stock_div", pe.stockdiv, aList);
             for(int i = 0;i < 4;i++) {
                 insertValue("season" + (i+1) + "_earn", pe.season[i], aList);
@@ -1307,16 +1465,19 @@ public class StockSqlUtil {
         } else {
             if(DEBUG_VERBOSE) System.out.println("updateBuyinAnalysis Date exist : stockid:" + stockid + " table:" + tableName + " date:" + todayDate);
             initUpdateTable();
-            addUpdateCol("lastbuydate", convertJavaDateToMySQLStr(todayDate));
+            addUpdateCol("lastbuydate", pe.buyinDate);
+            addUpdateCol("checkdate", pe.checkDate);
             addUpdateCol("amount", pe.count);
             addUpdateCol("avg_prise", pe.avgprise);
             addUpdateCol("returnratio", pe.returnratio);
+            addUpdateCol("lastprise", pe.lastprise);
             addUpdateCol("min_prise", pe.min);
             addUpdateCol("max_prise", pe.max);
             addUpdateCol("performance", pe.perform);
             addUpdateCol("roe", pe.roe);
             addUpdateCol("roa", pe.roa);
             addUpdateCol("book_value", pe.nv);
+            addUpdateCol("thisyear", divAnnounced);
             addUpdateCol("stock_div", pe.stockdiv);
             for(int i = 0;i < 4;i++) {
                 addUpdateCol("season" + (i+1) + "_earn", pe.season[i]);

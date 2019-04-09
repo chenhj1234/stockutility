@@ -106,7 +106,6 @@ public class HandleWebPage {
         mDividendListener = new HTMLParserDividendListener();
         mPageWalker.walk(mDividendListener, mPageParser.htmlDocument());
         mDividendListener.processTable();
-
         return HANDLE_PAGE_SUCCESS;
     }
 

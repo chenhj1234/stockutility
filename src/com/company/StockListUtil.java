@@ -1,5 +1,7 @@
 package com.company;
 
+import sqlutil.StockSqlUtil;
+
 import java.sql.*;
 import java.util.ArrayList;
 
@@ -12,6 +14,7 @@ public class StockListUtil {
     private String mydatabase = "stock_identifier_alpha";
     private String tblStockId = "stockid";
     private String tblStockIdUpdate = "stockid_for_update";
+    private String tblBuyinTableAnalysis = "buyin_table_analysis";
     private String url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
 
     private String username = "holmas";
@@ -121,6 +124,24 @@ public class StockListUtil {
         } catch(Exception e) {
             e.printStackTrace();
         }
+    }
+    public void getStockListFromBuyinAnalysis() {
+        StockSqlUtil su = new StockSqlUtil();
+        String tableName = su.buyinTableAnalysis;
+        ResultSet resSet;
+        su.initSelectTable();
+        su.addSelCol("stockid");
+        resSet = su.performSelectTable(tableName);
+        try {
+            while (resSet.next()) {
+                String id = resSet.getString("stockid");
+                stockIdList.add(new StockIdEntry(id, id));
+            }
+            resSet.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        su.finishSelectQuery();
     }
     private int getIdInEntryList(ArrayList<StockIdEntry> ent, String id) {
         for(int i = 0;i < ent.size();i++) {

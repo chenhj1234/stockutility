@@ -16,10 +16,21 @@ public class PageAndFile {
     public static final String currencyPage = "https://rate.bot.com.tw/xrt/flcsv/0/day";
     final String savedFilePath = "./saved_pages";
     String dateStr = "";
+    HttpURLConnection yc = null;
+    InputStream inStr = null;
+    InputStreamReader inStrRead = null;
+    BufferedReader inBufRead = null;
     BufferedReader openURLForRead(String url) {
+        return openURLForRead(url, "Big5-HKSCS");
+    }
+
+    BufferedReader openURLForRead(String url, String encode) {
         try {
             URL siteurl = new URL(url);
-            HttpURLConnection yc = (HttpURLConnection)siteurl.openConnection();
+            yc = (HttpURLConnection)siteurl.openConnection();
+            yc.setUseCaches(false);
+            yc.setAllowUserInteraction(false);
+            yc.setRequestProperty("User-Agent","Mozilla/5.0");
             yc.connect();
             int code = yc.getResponseCode();
             System.out.println("Response code:" + code);
@@ -27,10 +38,14 @@ public class PageAndFile {
                 yc.disconnect();
                 return null;
             }
-            //InputStream ins = oracle.openStream();
-            BufferedReader in = new BufferedReader(new InputStreamReader(
-                    yc.getInputStream(), "Big5-HKSCS"));
-            return in;
+            inStr = yc.getInputStream();
+            if((encode == null) || encode.equals("big5") || encode.equals("")) {
+                inStrRead = new InputStreamReader(inStr, "Big5-HKSCS");
+            } else {
+                inStrRead = new InputStreamReader(inStr, encode);
+            }
+            inBufRead = new BufferedReader(inStrRead);
+            return inBufRead;
         } catch(Exception e) {
             e.printStackTrace();
             return null;
@@ -52,7 +67,43 @@ public class PageAndFile {
     }
     public boolean writeURLToFile(String fileName, String url) {
         try {
-            BufferedReader in = openURLForRead(url);
+            openURLForRead(url);
+            if(inBufRead == null) return false;
+            BufferedWriter fileOut = openFileForWrite(fileName);
+            if(fileOut == null) {
+                inBufRead.close();
+                return false;
+            }
+            String inputLine;
+            while ((inputLine = inBufRead.readLine()) != null) {
+                fileOut.write(inputLine);
+                fileOut.write("\n");
+            }
+            fileOut.close();
+
+            inBufRead.close();
+            inBufRead = null;
+            if(inStrRead != null) {
+                inStrRead.close();
+                inStrRead = null;
+            }
+            if(inStr != null) {
+                inStr.close();
+                inStr = null;
+            }
+            if(yc != null) {
+                yc.disconnect();
+                yc = null;
+            }
+            return true;
+        } catch(Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public boolean writeURLToFile(String fileName, String url, String encode) {
+        try {
+            BufferedReader in = openURLForRead(url, encode);
             if(in == null) return false;
             BufferedWriter fileOut = openFileForWrite(fileName);
             if(fileOut == null) {
@@ -129,5 +180,42 @@ public class PageAndFile {
             return sFile;
         }
         return null;
+    }
+    public String getPageAndSave(String url, String storePath, String encode) {
+        String sFile = createOutputFolder();
+        sFile = sFile+"/" + storePath + ".html";
+        if(writeURLToFile(sFile,url, encode)) {
+            return sFile;
+        }
+        return null;
+    }
+    final String twseIndexPageURL = "http://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=__DATE__&type=ALL";
+    final String tpexIndexPageURL = "http://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&o=csv&d=__DATE__&s=0,asc,0";
+
+    public String getTWSEPageAndSave(Date date) {
+        // We will to get stock list info page from here http://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=20190322&type=ALL
+        String twseIndexPage = twseIndexPageURL;
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        String todaystr = dateFormat.format(date);
+        String savefile = "MI_INDEX_" + todaystr +".csv";
+        twseIndexPage = twseIndexPage.replace("__DATE__", todaystr);
+        PageAndFile pf = new PageAndFile();
+        savefile = pf.getPageAndSave(twseIndexPage,savefile);
+        System.out.println("MI Index save to " + savefile);
+        return savefile;
+    }
+    public String getTPEXPageAndSave(Date date) {
+        String tpexIndexPage = tpexIndexPageURL;
+        DateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+        String todaystr = dateFormat.format(date);
+        String tyear = String.valueOf(Integer.parseInt(todaystr.substring(0,4)) - 1911);
+        String tmm = todaystr.substring(4,6);
+        String tdd = todaystr.substring(6,8);
+        String savefile = "RSTA_" + todaystr +".csv";
+        tpexIndexPage = tpexIndexPage.replace("__DATE__", tyear + "/" + tmm + "/" + tdd);
+        PageAndFile pf = new PageAndFile();
+        savefile = pf.getPageAndSave(tpexIndexPage, savefile);
+        System.out.println("TPEX index save to " + savefile);
+        return savefile;
     }
 }
