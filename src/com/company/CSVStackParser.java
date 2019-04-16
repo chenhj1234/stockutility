@@ -240,7 +240,7 @@ public class CSVStackParser {
 
     public final int TPEX_INDEX_COL_BUYIN = 11;
     public final int TPEX_INDEX_COL_SELLOUT = 12;
-    public final int TPEX_INDEX_COL_DEALPRIZE = 9;
+    public final int TPEX_INDEX_COL_DEALPRIZE = 2;
     public final int TPEX_INDEX_COL_AMOUNT = 8;
 
 
@@ -262,9 +262,9 @@ public class CSVStackParser {
             dealStr = se.stockEntry.get(TPEX_INDEX_COL_DEALPRIZE).replace(",","");
             przStr = seString + " " + buyinStr + " " + selloutStr + " " + dealStr + " " + se.stockEntry.get(TPEX_INDEX_COL_AMOUNT);
             System.out.println(przStr);
-            if(buyinStr.equals("--") ||buyinStr.equals("-")) {
-                if(dealStr.equals("--") || dealStr.equals("-")) {
-                    if(selloutStr.equals("--") || selloutStr.equals("-")) {
+            if(buyinStr.contains("--") || buyinStr.equals("-")) {
+                if(dealStr.contains("--") || dealStr.equals("-")) {
+                    if(selloutStr.contains("--") || selloutStr.equals("-")) {
                         dealStr = buyinStr = selloutStr = "-1.0";
                     } else {
                         buyinStr = selloutStr;
@@ -273,9 +273,9 @@ public class CSVStackParser {
                     buyinStr = dealStr;
                 }
             }
-            if(selloutStr.equals("--") || selloutStr.equals("-")) {
-                if(dealStr.equals("--") || dealStr.equals("-")) {
-                    if(buyinStr.equals("--") || buyinStr.equals("-")) {
+            if(selloutStr.contains("--") || selloutStr.equals("-")) {
+                if(dealStr.contains("--") || dealStr.equals("-")) {
+                    if(buyinStr.contains("--") || buyinStr.equals("-")) {
                         dealStr = buyinStr = selloutStr = "-1.0";
                     } else {
                         selloutStr = buyinStr;
@@ -284,9 +284,9 @@ public class CSVStackParser {
                     selloutStr = dealStr;
                 }
             }
-            if(dealStr.equals("--") || dealStr.equals("-")) {
-                if(selloutStr.equals("--") || selloutStr.equals("-")) {
-                    if(buyinStr.equals("--") || buyinStr.equals("-")) {
+            if(dealStr.contains("--") || dealStr.equals("-")) {
+                if(selloutStr.contains("--") || selloutStr.equals("-")) {
+                    if(buyinStr.contains("--") || buyinStr.equals("-")) {
                         dealStr = buyinStr = selloutStr = "-1.0";
                     } else {
                         dealStr = buyinStr;

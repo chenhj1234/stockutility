@@ -7,17 +7,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="09005015-bd9b-4365-9394-719de52cad2c" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/src/com/company/CurrencyUtil.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/com/company/commutil/UpdateStockDailyInfo.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/com/company/GetArgs.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/com/company/commutil/GetHistory.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/com/company/commutil/GetScore.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/com/company/commutil/SelloutStock.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/com/company/CSVStackParser.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/CSVStackParser.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/company/CSVStackParserListener.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/CSVStackParserListener.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/company/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/Main.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/company/PageAndFile.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/PageAndFile.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/company/StockListUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/StockListUtil.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/company/commutil/CurrencyTool.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/commutil/CurrencyTool.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/com/company/commutil/UpdateStockList.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/com/company/commutil/UpdateStockList.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/htmlparser/HandleWebPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/htmlparser/HandleWebPage.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/sqlutil/StockSqlUtil.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/sqlutil/StockSqlUtil.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
@@ -35,8 +30,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/com/company/Main.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="210">
-              <caret line="467" column="57" selection-start-line="467" selection-start-column="57" selection-end-line="467" selection-end-column="57" />
+            <state relative-caret-position="306">
+              <caret line="648" selection-start-line="639" selection-end-line="648" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -45,28 +40,82 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/UpdateStockDailyInfo.java">
+        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/AddStockToWatch.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="315">
-              <caret line="27" column="22" selection-start-line="27" selection-start-column="22" selection-end-line="27" selection-end-column="33" />
+            <state relative-caret-position="180">
+              <caret line="12" selection-start-line="11" selection-end-line="12" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/ShowStockList.java">
+        <entry file="file://$PROJECT_DIR$/src/com/company/CurrencyUtil.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="105">
-              <caret line="7" column="42" selection-start-line="7" selection-start-column="42" selection-end-line="7" selection-end-column="42" />
+            <state relative-caret-position="481">
+              <caret line="108" column="30" selection-start-line="108" selection-start-column="16" selection-end-line="108" selection-end-column="30" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/com/company/GetArgs.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="162">
+              <caret line="38" column="18" selection-start-line="38" selection-start-column="18" selection-end-line="38" selection-end-column="18" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/PageAndFile.java">
+        <entry file="file://$PROJECT_DIR$/src/com/company/StockListUtil.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="387">
-              <caret line="209" column="35" lean-forward="true" selection-start-line="209" selection-start-column="35" selection-end-line="209" selection-end-column="35" />
+            <state relative-caret-position="192">
+              <caret line="129" selection-start-line="129" selection-end-line="129" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/GetHistory.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1246">
+              <caret line="89" column="34" selection-start-line="89" selection-start-column="34" selection-end-line="89" selection-end-column="34" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/sqlutil/StockSqlUtil.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="225">
+              <caret line="821" column="40" selection-start-line="821" selection-start-column="25" selection-end-line="821" selection-end-column="40" />
+              <folding>
+                <element signature="imports" expanded="true" />
+                <element signature="e#46421#46422#0" expanded="true" />
+                <element signature="e#63564#63565#0" expanded="true" />
+                <element signature="e#64466#64467#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/SelloutStock.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="240">
+              <caret line="16" column="90" selection-start-line="16" selection-start-column="90" selection-end-line="16" selection-end-column="90" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -83,57 +132,13 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/src/sqlutil/StockSqlUtil.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="237">
-              <caret line="775" selection-start-line="775" selection-end-line="775" />
-              <folding>
-                <element signature="e#45089#45090#0" expanded="true" />
-                <element signature="e#56620#56621#0" expanded="true" />
-                <element signature="e#57522#57523#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/BuyinStock.java">
+        <entry file="file://$PROJECT_DIR$/src/com/company/commutil/GetScore.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="360">
-              <caret line="24" selection-start-line="9" selection-end-line="24" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/CSVStackParser.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-360">
+            <state relative-caret-position="306">
+              <caret line="64" column="59" lean-forward="true" selection-start-line="64" selection-start-column="59" selection-end-line="64" selection-end-column="59" />
               <folding>
                 <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/CSVStackParserListener.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="120">
-              <caret line="8" column="56" selection-start-line="8" selection-start-column="36" selection-end-line="8" selection-end-column="56" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/com/company/StockInfoList.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="4" column="13" selection-start-line="4" selection-start-column="13" selection-end-line="4" selection-end-column="13" />
-              <folding>
-                <element signature="e#223#224#0" expanded="true" />
-                <element signature="e#262#263#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -150,9 +155,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>Select</find>
-      <find>select</find>
-      <find>Calendar.YEAR</find>
       <find>perform</find>
       <find>UPDATE</find>
       <find>println</find>
@@ -164,7 +166,6 @@
       <find>class</find>
       <find>order</find>
       <find>1316</find>
-      <find>buyin</find>
       <find>BUYIN</find>
       <find>Date</find>
       <find>returnratio</find>
@@ -180,6 +181,10 @@
       <find>DEBUG_CURRENCY_UPDATE</find>
       <find>daily</find>
       <find>getTWSEPageAndSave</find>
+      <find>buyinTable</find>
+      <find>DEBUG_USE_TWSE_TPEX_FOR_DAILY</find>
+      <find>buyin</find>
+      <find>getRo</find>
     </findStrings>
     <replaceStrings>
       <replace>incState()</replace>
@@ -216,11 +221,15 @@
         <option value="$PROJECT_DIR$/src/com/company/StockListUtil.java" />
         <option value="$PROJECT_DIR$/src/htmlparser/HandleWebPage.java" />
         <option value="$PROJECT_DIR$/src/com/company/commutil/UpdateStockList.java" />
+        <option value="$PROJECT_DIR$/src/com/company/commutil/GetHistory.java" />
+        <option value="$PROJECT_DIR$/src/com/company/Main.java" />
         <option value="$PROJECT_DIR$/src/com/company/PageAndFile.java" />
         <option value="$PROJECT_DIR$/src/com/company/commutil/UpdateStockDailyInfo.java" />
-        <option value="$PROJECT_DIR$/src/com/company/Main.java" />
         <option value="$PROJECT_DIR$/src/com/company/CSVStackParser.java" />
+        <option value="$PROJECT_DIR$/src/com/company/GetArgs.java" />
+        <option value="$PROJECT_DIR$/src/com/company/commutil/GetScore.java" />
         <option value="$PROJECT_DIR$/src/sqlutil/StockSqlUtil.java" />
+        <option value="$PROJECT_DIR$/src/com/company/commutil/SelloutStock.java" />
       </list>
     </option>
   </component>
@@ -318,7 +327,7 @@
     <property name="Repository.Attach.Annotations" value="false" />
     <property name="Repository.Attach.JavaDocs" value="false" />
     <property name="Repository.Attach.Sources" value="false" />
-    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1554795766975" />
+    <property name="com.android.tools.idea.instantapp.provision.ProvisionBeforeRunTaskProvider.myTimeStamp" value="1555413083178" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../csvparser/src/com/company/CSVStackParserListener.java" />
     <property name="project.structure.last.edited" value="Project" />
     <property name="project.structure.proportion" value="0.15" />
@@ -387,7 +396,7 @@
     <configuration name="Main" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="com.company.Main" />
       <module name="stockutility" />
-      <option name="PROGRAM_PARAMETERS" value="-apply-daily-twse-tpex yes -year 2019 -month 4 -day 8" />
+      <option name="PROGRAM_PARAMETERS" value="-apply-daily-twse-tpex no -apply-strategy yes -s 1611" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
@@ -617,16 +626,6 @@
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/com/company/commutil/UpdateOverTheCounterStockList.java" />
-    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/AddStockToWatch.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="315">
-          <caret line="24" column="9" selection-start-line="24" selection-start-column="9" selection-end-line="24" selection-end-column="9" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/htmlparser/Main.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
@@ -659,16 +658,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="10" column="13" selection-start-line="10" selection-start-column="13" selection-end-line="10" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/CurrencyUtil.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1590">
-          <caret line="108" column="30" selection-start-line="108" selection-start-column="16" selection-end-line="108" selection-end-column="30" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -710,13 +699,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/StockListUtil.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="346">
-          <caret line="144" selection-start-line="144" selection-end-line="144" />
-        </state>
-      </provider>
-    </entry>
     <entry file="jar:///usr/lib/jvm/java-8-openjdk-amd64/jre/lib/rt.jar!/java/util/Date.class">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="188">
@@ -725,47 +707,6 @@
             <element signature="e#1429#1430#0" expanded="true" />
             <element signature="e#1477#1478#0" expanded="true" />
           </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/UpdateStockList.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="361">
-          <caret line="27" column="71" selection-start-line="27" selection-start-column="12" selection-end-line="27" selection-end-column="71" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/ShowStockList.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="105">
-          <caret line="7" column="42" selection-start-line="7" selection-start-column="42" selection-end-line="7" selection-end-column="42" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/CurrencyTool.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="120">
-          <caret line="8" column="25" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="25" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/BuyinStock.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="360">
-          <caret line="24" selection-start-line="9" selection-end-line="24" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/UpdateStockDailyInfo.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="315">
-          <caret line="27" column="22" selection-start-line="27" selection-start-column="22" selection-end-line="27" selection-end-column="33" />
         </state>
       </provider>
     </entry>
@@ -789,24 +730,110 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/com/company/CSVStackParser.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-360">
+        <state relative-caret-position="630">
+          <caret line="308" column="54" selection-start-line="308" selection-start-column="54" selection-end-line="308" selection-end-column="54" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="jar:///usr/lib/jvm/java-8-openjdk-amd64/jre/lib/rt.jar!/java/sql/PreparedStatement.class">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="135">
+          <caret line="16" column="8" selection-start-line="16" selection-start-column="8" selection-end-line="16" selection-end-column="8" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/BuyinStock.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="15" column="26" lean-forward="true" selection-start-line="15" selection-start-column="26" selection-end-line="15" selection-end-column="26" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/com/company/PageAndFile.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="387">
-          <caret line="209" column="35" lean-forward="true" selection-start-line="209" selection-start-column="35" selection-end-line="209" selection-end-column="35" />
+        <state relative-caret-position="225">
+          <caret line="186" column="44" selection-start-line="186" selection-start-column="44" selection-end-line="186" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/UpdateStockList.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="196">
+          <caret line="14" column="26" selection-start-line="14" selection-start-column="26" selection-end-line="14" selection-end-column="26" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/UpdateStockDailyInfo.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="390">
+          <caret line="42" column="30" selection-start-line="42" selection-start-column="30" selection-end-line="42" selection-end-column="30" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/ShowStockList.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="105">
+          <caret line="7" column="42" selection-start-line="7" selection-start-column="42" selection-end-line="7" selection-end-column="42" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/CurrencyUtil.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="481">
+          <caret line="108" column="30" selection-start-line="108" selection-start-column="16" selection-end-line="108" selection-end-column="30" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/GetHistory.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1246">
+          <caret line="89" column="34" selection-start-line="89" selection-start-column="34" selection-end-line="89" selection-end-column="34" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/StockListUtil.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="192">
+          <caret line="129" selection-start-line="129" selection-end-line="129" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/com/company/Main.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="210">
-          <caret line="467" column="57" selection-start-line="467" selection-start-column="57" selection-end-line="467" selection-end-column="57" />
+        <state relative-caret-position="306">
+          <caret line="648" selection-start-line="639" selection-end-line="648" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/CurrencyTool.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="120">
+          <caret line="8" column="25" selection-start-line="8" selection-start-column="13" selection-end-line="8" selection-end-column="25" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/AddStockToWatch.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="180">
+          <caret line="12" selection-start-line="11" selection-end-line="12" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -815,13 +842,41 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/sqlutil/StockSqlUtil.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="237">
-          <caret line="775" selection-start-line="775" selection-end-line="775" />
+        <state relative-caret-position="225">
+          <caret line="821" column="40" selection-start-line="821" selection-start-column="25" selection-end-line="821" selection-end-column="40" />
           <folding>
-            <element signature="e#45089#45090#0" expanded="true" />
-            <element signature="e#56620#56621#0" expanded="true" />
-            <element signature="e#57522#57523#0" expanded="true" />
+            <element signature="imports" expanded="true" />
+            <element signature="e#46421#46422#0" expanded="true" />
+            <element signature="e#63564#63565#0" expanded="true" />
+            <element signature="e#64466#64467#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/GetScore.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="64" column="59" lean-forward="true" selection-start-line="64" selection-start-column="59" selection-end-line="64" selection-end-column="59" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/commutil/SelloutStock.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="240">
+          <caret line="16" column="90" selection-start-line="16" selection-start-column="90" selection-end-line="16" selection-end-column="90" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/com/company/GetArgs.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="162">
+          <caret line="38" column="18" selection-start-line="38" selection-start-column="18" selection-end-line="38" selection-end-column="18" />
         </state>
       </provider>
     </entry>
