@@ -43,6 +43,7 @@ public class StockSqlUtil {
     public final String dailyExchangeRate = "daily_exchange_rate";
     public final String buyinPerformance = "buyin_performance";
     public final String buyinPerformanceAccu = "buyin_performance_accu";
+    public final String strategyTable = "buyin_strategy";
     // With regular daily buyin, the stockid and date will be checked, if matched, not buyin
     public static final int BUYIN_REGULAR_DAILY = 0;
     // With regular daily buyin, the stockid will be checked, if matched, buyin, add amount and count avarage prise
@@ -704,17 +705,17 @@ public class StockSqlUtil {
         return true;
     }
     public final static int SELLOUT_AMOUNT_ALL = 100000;
-    public boolean sellout(String stockid, int amount, String dateStr, float sellprise) {
-        if(checkIdExistInTable("buyin_table", stockid)) {
+    public void sellout(String stockid, int amount, String datestr, float sellprize) {
+        String tableName = buyinTable;
+        if(checkIdExistInTable(tableName, stockid)) {
             initUpdateTable();
-            addUpdateCol("sellday",dateStr);
-            addUpdateCol("sellprize",sellprise);
+            addUpdateCol("sellday", datestr);
+            addUpdateCol("sellprize", sellprize);
             addUpdateParam("stockid", stockid);
-        } else {
-            if(DEBUG_VERBOSE) System.out.println("stockid:" + stockid + " date:" + dateStr + " already bought");
+            performUpdateTable(tableName);
         }
-        return true;
     }
+
     public boolean buyin(String stockid, String tableName, int amount, String dateStr, float prise, int sind, String sdec, float rr, int buyin_method) {
         boolean idExist = checkIdExistInTable(tableName, stockid);
         boolean idDateExist = checkIdExistInTable(tableName, stockid, "buyday", dateStr);
@@ -814,6 +815,9 @@ public class StockSqlUtil {
     StrategyParameter param2 = new StrategyParameter(8,1, true);
     StrategyParameter sellparam1 = new StrategyParameter(6,-3, false);
     StrategyParameter sellparam2 = new StrategyParameter(5,1, true);
+    ArrayList<StrategyParameter> mSelloutStrategy = new ArrayList<>();
+    ArrayList<StrategyParameter> mBuyinStrategy = new ArrayList<>();
+    ArrayList<StrategyParameter> mExtraBuyinStrategy = new ArrayList<>();
     public void applyStrategy(String stockid, int strategyIndex) {
         String dateStr = convertJavaDateToMySQLStr(new Date());
         float retr = getLastReturnRatio(stockid);
@@ -827,6 +831,75 @@ public class StockSqlUtil {
             buyin(stockid, 1,dateStr,mBuyinPrise,2,"ratio > " + param2.ratio_threshold + " roe > " + param2.roe + " share:" + param2.noNeedAnnounced, mBuyinReturnRatio);
         }
         //System.out.println("stock id:" + stockid + " rr:" + retr);
+    }
+
+    public void getStrategy(ArrayList<StrategyParameter> buyStrategy,
+                            ArrayList<StrategyParameter> sellStrategy,
+                            ArrayList<StrategyParameter> extraByuinStrategy) {
+        String tableName = strategyTable;
+        float rr, prz;
+        int idx;
+        String stype;
+        boolean needAnn = false;
+        initSelectTable();
+        addSelOrder("strategyid", true);
+        ResultSet rSet = performSelectTable(tableName);
+        try {
+            while (rSet.next()) {
+                rr = rSet.getFloat("return_ratio");
+                prz = rSet.getFloat("prize");
+                stype = rSet.getString("strategytype");
+                needAnn = rSet.getBoolean("needAnnounced");
+                if(stype.equals("buy") && buyStrategy != null) {
+                    StrategyParameter sp = new StrategyParameter(rr, prz, needAnn);
+                    buyStrategy.add(sp);
+                }
+                else if(stype.equals("sell") && sellStrategy != null) {
+                    StrategyParameter sp = new StrategyParameter(rr, prz, needAnn);
+                    sellStrategy.add(sp);
+                }
+                else if(stype.equals("cbuy") && extraByuinStrategy != null) {
+                    StrategyParameter sp = new StrategyParameter(rr, prz, needAnn);
+                    extraByuinStrategy.add(sp);
+                }
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public int matchStrategy(String stockid, performanceEntry pe, boolean ann, ArrayList<StrategyParameter> strategy, boolean isBuy) {
+        StrategyParameter sp;
+        for(int i = 0;i < strategy.size();i++) {
+            sp = strategy.get(i);
+            if(isBuy) {
+                if((pe.returnratio > sp.ratio_threshold) && (pe.roe > sp.roe) && (ann || sp.noNeedAnnounced)) {
+                    return i;
+                }
+            } else {
+                if((pe.returnratio < sp.ratio_threshold) || (pe.roe < sp.roe)) {
+                    return i;
+                }
+            }
+        }
+        return -1;
+    }
+    public void applySelloutStrategy(String stockid) {
+        getStrategy(mBuyinStrategy, mSelloutStrategy, mExtraBuyinStrategy);
+        performanceEntry pe = new performanceEntry();
+        boolean ann = checkThisYearShareAnnounced(stockid);
+        int i = matchStrategy(stockid, pe, ann, mSelloutStrategy, false);
+        if(i >= 0) {
+            System.out.println("Sellout");
+//            sellout(stockid,1000000, convertJavaDateToMySQLStr(new Date()),mBuyinPrise);
+        }
+        i = matchStrategy(stockid, pe, ann, mBuyinStrategy,true);
+        if(i >= 0) {
+            System.out.println("Buyin");
+        }
+        i = matchStrategy(stockid, pe, ann, mExtraBuyinStrategy,true);
+        if(i >= 0) {
+            System.out.println("Extra Buyin");
+        }
     }
 
     public boolean insertSeasonEarningTable(String stockid, int annualYear,
