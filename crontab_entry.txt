@@ -1,0 +1,4 @@
+# weekday 1~5 , 4:30 PM will start daily process
+30 16 * * 1-5 /share/CACHEDEV2_DATA/data_process/run_stock.sh 1>/share/CACHEDEV2_DATA/data_process/run.log 2>&1
+# Every Saturday 1:00 AM will start process earning and share history process
+0 1 * * 6 /share/CACHEDEV2_DATA/data_process/run_share_and_earn.sh 1>/share/CACHEDEV2_DATA/data_process/run_share.log 2>&1

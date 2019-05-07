@@ -22,6 +22,7 @@ public class StockListUtil {
     private String table_stockid = mydatabase + "." + tblStockId;
     private String table_stockid_update = mydatabase + "." + tblStockIdUpdate;
     private String driverName = "com.mysql.cj.jdbc.Driver";
+    private boolean DEBUG_MSG_VERBOSE = false;
     private String getUrl() {
         url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
         return url;
@@ -118,7 +119,7 @@ public class StockListUtil {
             while (mResultSet.next()) {
                 String id = mResultSet.getString("stockid");
                 String name = mResultSet.getString("stockname");
-                System.out.println("Access id:" + id + " name:" + name);
+                if(DEBUG_MSG_VERBOSE) System.out.println("Access id:" + id + " name:" + name);
                 stockIdList.add(new StockIdEntry(id, name));
             }
         } catch(Exception e) {
@@ -131,6 +132,28 @@ public class StockListUtil {
         ResultSet resSet;
         su.initSelectTable();
         su.addSelCol("stockid");
+        resSet = su.performSelectTable(tableName);
+        try {
+            while (resSet.next()) {
+                String id = resSet.getString("stockid");
+                stockIdList.add(new StockIdEntry(id, id));
+            }
+            resSet.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        su.finishSelectQuery();
+    }
+    public void getStockListFromBuyin(boolean withSellout) {
+        StockSqlUtil su = new StockSqlUtil();
+        String tableName = su.buyinTable;
+        ResultSet resSet;
+        su.initSelectTable();
+        if(!withSellout) {
+            su.addSelParmValue("sellday");
+        }
+        su.addSelCol("stockid");
+        su.addSelGroup("stockid");
         resSet = su.performSelectTable(tableName);
         try {
             while (resSet.next()) {

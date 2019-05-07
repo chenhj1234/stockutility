@@ -29,12 +29,19 @@ public class Main {
     private static boolean DEBUG_PARSE_PAGE_DAILY = true;
     private static boolean DEBUG_PARSE_PAGE_DIVIDEND = true;
     private static boolean DEBUG_PARSE_PAGE_EARNING = true;
-    private static boolean DEBUG_SWITCH_TO_STOCKID_UPDATE = true;
+    //private static boolean DEBUG_SWITCH_TO_STOCKID_UPDATE = true;
     private static boolean DEBUG_CURRENCY_UPDATE = false;
-    private static boolean DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
+    //private static boolean DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
 
     private static boolean DEBUG_USE_TWSE_TPEX_FOR_DAILY = true;
     private static String testStockId = "1102";
+
+    private static final int USE_STOCK_LIST_ID_LIST = 0;
+    private static final int USE_STOCK_LIST_ID_LIST_UPDATE = 1;
+    private static final int USE_STOCK_LIST_BUYIN_LIST = 2;
+    private static final int USE_STOCK_LIST_BUYIN_ANALYSIS_LIST = 3;
+    private static int stockIdListUse = USE_STOCK_LIST_ID_LIST_UPDATE;
+
     private static int startIndex = 0;
     private static int endIndex = -1;
     private static int getPageYear = -1;
@@ -261,12 +268,26 @@ public class Main {
                     i++;
                     if("yes".equalsIgnoreCase(args[i])) {
                         System.out.println("update buyin analysis");
-                        DEBUG_SWITCH_TO_STOCKID_UPDATE = false;
-                        DEBUG_UPDATE_BUYIN_PERFORMANCE = true;
-                    } else if("no".equalsIgnoreCase(args[i])) {
-                        System.out.println("enable buyin analysis");
-                        DEBUG_SWITCH_TO_STOCKID_UPDATE = true;
-                        DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
+                        stockIdListUse = USE_STOCK_LIST_BUYIN_ANALYSIS_LIST;
+//                        DEBUG_SWITCH_TO_STOCKID_UPDATE = false;
+//                        DEBUG_UPDATE_BUYIN_PERFORMANCE = true;
+//                    } else if("no".equalsIgnoreCase(args[i])) {
+//                        System.out.println("enable buyin analysis");
+//                        DEBUG_SWITCH_TO_STOCKID_UPDATE = true;
+//                        DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
+                    }
+                    break;
+                case "-update-buyin":
+                    i++;
+                    if("yes".equalsIgnoreCase(args[i])) {
+                        System.out.println("update buyin table");
+                        stockIdListUse = USE_STOCK_LIST_BUYIN_LIST;
+//                        DEBUG_SWITCH_TO_STOCKID_UPDATE = false;
+//                        DEBUG_UPDATE_BUYIN_PERFORMANCE = true;
+//                    } else if("no".equalsIgnoreCase(args[i])) {
+//                        System.out.println("enable buyin analysis");
+//                        DEBUG_SWITCH_TO_STOCKID_UPDATE = true;
+//                        DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
                     }
                     break;
                 case "-update-db":
@@ -280,7 +301,7 @@ public class Main {
                         DEBUG_DATABASE_STOCK_ANALYSIS_RATIO = false;
                         DEBUG_DATABASE_STOCK_APPLY_STRATEGY = false;
                         DEBUG_DATABASE_STOCK_COUNT_FORMANCE = false;
-                        DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
+//                        DEBUG_UPDATE_BUYIN_PERFORMANCE = false;
                         DEBUG_CURRENCY_UPDATE = false;
                     } else if("yes".equalsIgnoreCase(args[i])) {
                         System.out.println("enable all db");
@@ -291,7 +312,7 @@ public class Main {
                         DEBUG_DATABASE_STOCK_ANALYSIS_RATIO = true;
                         DEBUG_DATABASE_STOCK_APPLY_STRATEGY = true;
                         DEBUG_DATABASE_STOCK_COUNT_FORMANCE = true;
-                        DEBUG_UPDATE_BUYIN_PERFORMANCE = true;
+//                        DEBUG_UPDATE_BUYIN_PERFORMANCE = true;
                         DEBUG_CURRENCY_UPDATE = true;
                     }
                     break;
@@ -465,7 +486,9 @@ public class Main {
         }
         StockSqlUtil stu = new StockSqlUtil();
         if(DEBUG_DATABASE_STOCK_ANALYSIS_RATIO) stu.analysisReturnRatio(stockid);
-        if(DEBUG_DATABASE_STOCK_APPLY_STRATEGY) stu.applyStrategy(stockid, 0);
+        if(DEBUG_DATABASE_STOCK_APPLY_STRATEGY)
+            stu.applyBuyinSelloutStrategy(stockid, true);
+//            stu.applyStrategy(stockid, 0);
         if(DEBUG_DATABASE_STOCK_COUNT_FORMANCE) {
             perform = stu.getPerformance(stockid);
             total += perform;
@@ -638,14 +661,32 @@ public class Main {
             if(!DEBUG_DATABASE_STOCK)
                 System.exit(0);
             StockListUtil su = new StockListUtil();
-            if(DEBUG_SWITCH_TO_STOCKID_UPDATE) {
-                // We update our list from "market" and "over the counter", and we limit with only 4 digit number stockid here
-                su.getStockListFromUpdatedList();
-            } else if(DEBUG_UPDATE_BUYIN_PERFORMANCE) {
-                su.getStockListFromBuyinAnalysis();
-            } else {
-                su.getStockList();
+            switch(stockIdListUse) {
+                case USE_STOCK_LIST_ID_LIST:
+                    su.getStockList();
+                    break;
+                case USE_STOCK_LIST_ID_LIST_UPDATE:
+                    su.getStockListFromUpdatedList();
+                    break;
+                case USE_STOCK_LIST_BUYIN_ANALYSIS_LIST:
+                    su.getStockListFromBuyinAnalysis();
+                    break;
+                case USE_STOCK_LIST_BUYIN_LIST:
+                    su.getStockListFromBuyin(true);
+                    break;
+                default:
+                    su.getStockListFromUpdatedList();
+                    break;
+
             }
+//            if(DEBUG_SWITCH_TO_STOCKID_UPDATE) {
+//                // We update our list from "market" and "over the counter", and we limit with only 4 digit number stockid here
+//                su.getStockListFromUpdatedList();
+//            } else if(DEBUG_UPDATE_BUYIN_PERFORMANCE) {
+//                su.getStockListFromBuyinAnalysis();
+//            } else {
+//                su.getStockList();
+//            }
             float total = 0, perform = 0;
             boolean getPageSuccess = true;
             StockListUtil.StockIdEntry se = null;

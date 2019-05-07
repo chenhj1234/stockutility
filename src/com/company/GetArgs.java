@@ -38,7 +38,7 @@ public class GetArgs {
     }
     public String findParm(String arg) {
         int opt = findArg(arg);
-        if(opt < 0) {
+        if(opt < 0 || params.get(opt) == null || params.get(opt).equals("")) {
             return null;
         }
         return params.get(opt);

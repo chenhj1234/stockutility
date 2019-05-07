@@ -1,6 +1,7 @@
 package com.company.commutil;
 
 import com.company.GetArgs;
+import com.company.StockListUtil;
 import sqlutil.StockSqlUtil;
 
 public class GetScore {
@@ -43,6 +44,23 @@ public class GetScore {
         if(ann) return 1;
         return 0;
     }
+    public static void getOneStockScore(String stockid) {
+        float score = 0;
+        float roeScore = 0;
+        float rrScore = 0;
+        float seasonEarnScore = 0;
+        float yearEarnScore = 0;
+        float announcedScore = 0;
+        StockSqlUtil sqlU = new StockSqlUtil();
+        StockSqlUtil.performanceEntry pe = sqlU.getPerformance(stockid, false, true);
+        roeScore = getRoeScore(pe.roe);
+        rrScore = getRRScore(pe.returnratio);
+        seasonEarnScore = getSeasonScore(pe.season);
+        yearEarnScore = getAnnualScore(pe.year, pe.season);
+        announcedScore = getAnnouncedScore(sqlU.checkThisYearShareAnnounced(stockid));
+        score = roeScore + rrScore + seasonEarnScore + yearEarnScore + announcedScore;
+        System.out.println("stock id:" + stockid + " roe:" + pe.roe + " score:" + roeScore + " rr:" + pe.returnratio + " score:" + rrScore + " season:" + seasonEarnScore + " year:" + yearEarnScore + " ann:" + announcedScore + " tot:" + score);
+    }
     public static void main(String[] args) {
         float score = 0;
         float roeScore = 0;
@@ -53,18 +71,34 @@ public class GetScore {
         garg.addOption("-s" , true);
         garg.processArgs(args);
         if(!garg.isArgOn("-s")) {
-            System.out.println("Usage : GetScore -s stockid");
-            System.exit(-1);
+            StockListUtil su = new StockListUtil();
+            su.getStockListFromBuyinAnalysis();
+            StockListUtil.StockIdEntry se = null;
+            StockSqlUtil sqlU = new StockSqlUtil();
+            for(int i = 0;i < su.stockIdList.size(); i++) {
+                se = su.stockIdList.get(i);
+                getOneStockScore(se.id);
+//                StockSqlUtil.performanceEntry pe = sqlU.getPerformance(se.id, false, true);
+//                roeScore = getRoeScore(pe.roe);
+//                rrScore = getRRScore(pe.returnratio);
+//                seasonEarnScore = getSeasonScore(pe.season);
+//                yearEarnScore = getAnnualScore(pe.year, pe.season);
+//                announcedScore = getAnnouncedScore(sqlU.checkThisYearShareAnnounced(se.id));
+//                score = roeScore + rrScore + seasonEarnScore + yearEarnScore + announcedScore;
+//                System.out.println("stock id:" + se.id + " roe:" + pe.roe + " score:" + roeScore + " rr:" + pe.returnratio + " score:" + rrScore + " season:" + seasonEarnScore + " year:" + yearEarnScore + " ann:" + announcedScore + " tot:" + score);
+            }
+        } else {
+            String stockid = garg.findParm("-s");
+            getOneStockScore(stockid);
+//            StockSqlUtil sqlU = new StockSqlUtil();
+//            StockSqlUtil.performanceEntry pe = sqlU.getPerformance(stockid, false, true);
+//            roeScore = getRoeScore(pe.roe);
+//            rrScore = getRRScore(pe.returnratio);
+//            seasonEarnScore = getSeasonScore(pe.season);
+//            yearEarnScore = getAnnualScore(pe.year, pe.season);
+//            announcedScore = getAnnouncedScore(sqlU.checkThisYearShareAnnounced(stockid));
+//            score = roeScore + rrScore + seasonEarnScore + yearEarnScore + announcedScore;
+//            System.out.println("score: roe:" + roeScore + " rr:" + rrScore + " season:" + seasonEarnScore + " year:" + yearEarnScore + " ann:" + announcedScore + " tot:" + score);
         }
-        String stockid = garg.findParm("-s");
-        StockSqlUtil sqlU = new StockSqlUtil();
-        StockSqlUtil.performanceEntry pe = sqlU.getPerformanceNoBuyin(stockid, false);
-        roeScore = getRoeScore(pe.roe);
-        rrScore = getRRScore(pe.returnratio);
-        seasonEarnScore = getSeasonScore(pe.season);
-        yearEarnScore = getAnnualScore(pe.year, pe.season);
-        announcedScore = getAnnouncedScore(sqlU.checkThisYearShareAnnounced(stockid));
-        score = roeScore + rrScore + seasonEarnScore + yearEarnScore + announcedScore;
-        System.out.println("score: roe:" + roeScore + " rr:" + rrScore + " season:" + seasonEarnScore + " year:" + yearEarnScore + " ann:" + announcedScore + " tot:" + score);
     }
 }
