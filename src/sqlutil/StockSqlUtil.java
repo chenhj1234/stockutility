@@ -21,12 +21,15 @@ public class StockSqlUtil {
     private Statement mStatement = null;
     private ResultSet mResultSet = null;
     private PreparedStatement mPreparedStatement = null;
-    private String serverName = "10.20.70.136";
+    private String serverName = "10.20.70.22";
+//    private String serverName = "192.168.1.90";
     private String mydatabase = "stock_identifier_alpha";
-    private final String tblStockId = "stockid";
-
+    // Table for stock id and name matching list
+    public final String tblStockId = "stockid";
     public final String tblStockIdUpdate = "stockid_for_update";
+
     public final String dailyInfoTable = "daily_info_table";
+    public final String dailyInfoHistoryTable = "daily_info_table_hist";
     public final String monthlyEarnTable = "monthly_earn_table";
     public final String annuallyInfoTable = "annual_info_table";
     public final String annualDividendTable = "annual_share_table";
@@ -45,6 +48,7 @@ public class StockSqlUtil {
     public final String buyinPerformance = "buyin_performance";
     public final String buyinPerformanceAccu = "buyin_performance_accu";
     public final String strategyTable = "buyin_strategy";
+    public final String kHistDividendScoreTableName = "hist_div_score";
     // With regular daily buyin, the stockid and date will be checked, if matched, not buyin
     public static final int BUYIN_REGULAR_DAILY = 0;
     // With regular daily buyin, the stockid will be checked, if matched, buyin, add amount and count avarage prise
@@ -52,8 +56,8 @@ public class StockSqlUtil {
 
     private String url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
 
-    private String username = "holmas";
-    private String password = "chenhj";
+    private String username = "chenhj";
+    private String password = "holmas0228";
     private String table_stockid = mydatabase + "." + tblStockId;
     private String driverName = "com.mysql.cj.jdbc.Driver";
 
@@ -61,6 +65,9 @@ public class StockSqlUtil {
         return tblStockIdUpdate;
     }
 
+    public String getTabelNameWithDB(String tableName) {
+        return mydatabase + "." + tableName;
+    }
     private boolean connectToServer() {
         try {
             Class.forName(driverName); // here is the ClassNotFoundException
@@ -79,22 +86,76 @@ public class StockSqlUtil {
         return false;
     }
 
+    private static StockSqlUtil instance = null;
+    static public StockSqlUtil getInstence() {
+        if(instance == null) {
+            instance = new StockSqlUtil();
+            instance.connectToServer();
+        }
+        return instance;
+    }
+
+    public boolean isConnected() {
+        return (mConnection != null);
+    }
+
+    public Statement getConnectionStatement() {
+        if(mConnection == null) return null;
+        try {
+            if (mStatement == null) mStatement = mConnection.createStatement();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return mStatement;
+    }
+
+    public void closeConnectionStatement() {
+        if(mConnection != null && mStatement != null) {
+            try {
+                mStatement.close();
+                mStatement = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void startConnection() {
+        closeConnection();
+        connectToServer();
+    }
+
+    public void closeConnection() {
+        closeConnectionStatement();
+        if(mConnection != null) {
+            try {
+                mConnection.close();
+                mConnection = null;
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
     public boolean insertDailyTable(String stockid, Date date, float buyin, float sellout, float dealprise, float shift, int amount, boolean updaterec) {
-        String tableName = dailyInfoTable;
+        return insertDailyTable(stockid, date, buyin,sellout,dealprise,shift,amount,updaterec, dailyInfoTable);
+    }
+    public boolean insertDailyTable(String stockid, Date date, float buyin, float sellout, float dealprise, float shift, int amount, boolean updaterec, String dailyTargetTableName) {
+        String tableName = dailyTargetTableName;
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         DateFormat timeFormat = new SimpleDateFormat("hh:mm:ss");
         //java.sql.Date date = new java.sql.Date();
         String dateString = "null";
         String timeString = "null";
         if(date == null || dealprise == -1) return false;
-        dateString = "'" + dateFormat.format(date) + "'";
-        timeString = "'" + timeFormat.format(date) + "'";
+//        dateString = "'" + dateFormat.format(date) + "'";
+//        timeString = "'" + timeFormat.format(date) + "'";
+        dateString = dateFormat.format(date);
+        timeString = timeFormat.format(date);
         if(checkIdExistInTable(tableName, stockid, dateFormat.format(date))) {
 //            PreparedStatement stmt = mConnection.prepareStatement("update`user` set `exp` = '666'  where `username` = '"+loggedusername+"'");
             if(updaterec) {
                 if (DEBUG_VERBOSE)
                     System.out.println("id:" + stockid + " date:" + dateFormat.format(date) + " exist, try update");
-                try {
                 initUpdateTable();
                 addUpdateCol("buyin", buyin);
                 addUpdateCol("sellout", sellout);
@@ -102,56 +163,51 @@ public class StockSqlUtil {
                 addUpdateCol("amount", amount);
                 addUpdateCol("time", timeFormat.format(date));
                 addUpdateCol("returnratio", 0);
+                addUpdateCol("score", 0);
+                addUpdateCol("suggestion", "nosuggestion");
                 addUpdateParam("stockid", stockid);
                 addUpdateParam("date", dateFormat.format(date));
                 performUpdateTable(tableName);
-//                    connectToServer();
-//
-//                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-//                            " SET buyin = ?, sellout = ? , dealprise = ? , amount = ? , time = ? , returnratio = ? " +
-//                            "WHERE stockid = ? AND date = ?");
-//                    stmt.setFloat(1, buyin);
-//                    stmt.setFloat(2, sellout);
-//                    stmt.setFloat(3, dealprise);
-//                    stmt.setInt(4, amount);
-//                    java.sql.Time sqlTime = java.sql.Time.valueOf(timeFormat.format(date));
-//                    stmt.setTime(5, sqlTime);
-//                    stmt.setFloat(6, 0);
-//                    stmt.setString(7, stockid);
-//                    java.sql.Date sqlDate = java.sql.Date.valueOf(dateFormat.format(date));
-//                    stmt.setDate(8, sqlDate);
-//                    stmt.executeUpdate();
-//                    stmt.close();
-                    if (DEBUG_VERBOSE)
-                        System.out.println("update success");
-//                    if (mConnection != null) {
-//                        mConnection.close();
-//                        mConnection = null;
-//                    }
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("update fail");
-                }
+                if (DEBUG_VERBOSE)
+                    System.out.println("update success");
+//                try {
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                    System.out.println("update fail");
+//                }
             }
         } else {
-            String query = "insert into " + tableName + " values ( '" + stockid + "', " +
-                    buyin + ", " + sellout + ", " + dealprise + ", " + amount + ", " + dateString + ", " + timeString + ", 0" + ")";
             if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " date:" + dateFormat.format(date) + " not exist, try insert");
-            try {
-                System.out.println(query);
-                connectToServer();
-                mStatement.executeUpdate(query);
-                if (mConnection != null) {
-                    mConnection.close();
-                    mConnection = null;
-                }
-                if(DEBUG_VERBOSE) System.out.println("insert success");
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("insert fail");
-                System.exit(1);
-            }
+            initInsertTable();
+            insertValue("stock", stockid);
+            insertValue("buyin", buyin);
+            insertValue("sellout", sellout);
+            insertValue("dealprise", dealprise);
+            insertValue("amount", amount);
+            insertValue("date", dateString);
+            insertValue("time", timeString);
+            insertValue("returnratio", 0);
+            insertValue("score", 0);
+            insertValue("suggestion", "nosuggestion");
+            insertIntoTable(tableName);
+
+//            String query = "insert into " + tableName + " values ( '" + stockid + "', " +
+//                    buyin + ", " + sellout + ", " + dealprise + ", " + amount + ", " + dateString + ", " + timeString + ", 0" + ")";
+//
+//            try {
+//                System.out.println(query);
+//                connectToServer();
+//                mStatement.executeUpdate(query);
+//                if (mConnection != null) {
+//                    mConnection.close();
+//                    mConnection = null;
+//                }
+//                if(DEBUG_VERBOSE) System.out.println("insert success");
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                System.out.println("insert fail");
+//                System.exit(1);
+//            }
         }
         return true;
     }
@@ -174,74 +230,104 @@ public class StockSqlUtil {
         }
         if(checkIdExistInTable(tableName, stockid, year)) {
             if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + year + " exist, try update");
-            try {
-                connectToServer();
+            initUpdateTable();
+            addUpdateCol("roe", roe);
+            addUpdateCol("roa", roa);
+            addUpdateCol("stock_dividend", stock_dividend);
+            addUpdateCol("cash_dividend", cash_dividend);
+            addUpdateCol("exclusion_date", exdate);
+            addUpdateCol("elimination_date", eldate);
+            addUpdateCol("gross_profit_margin", gross_profit_margin);
+            addUpdateCol("operating_profit_margin", operating_profit_margin);
+            addUpdateCol("book_value_per_share", book_value_per_share);
+            addUpdateCol("earning_before_tax_margin", earning_before_tax_margin);
+            addUpdateParam("stockid", stockid);
+            addUpdateParam("year", year);
+            performUpdateTable(tableName);
 
-                PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-                        " SET roe = ?, roa = ? , stock_dividend = ? , cash_dividend = ? , " +
-                        "exclusion_date = ? , elimination_date = ? , " +
-                        "gross_profit_margin = ? , operating_profit_margin = ? ," +
-                        "book_value_per_share = ? , earning_before_tax_margin = ?  " +
-                        "WHERE stockid = ? AND year = ?");
-                stmt.setFloat(1, roe);
-                stmt.setFloat(2, roa);
-                stmt.setFloat(3, stock_dividend);
-                stmt.setFloat(4, cash_dividend);
-                java.sql.Date sqlDate = null;
-                if(exdate == null) {
-                    stmt.setDate(5, null);
-                } else {
-                    sqlDate = java.sql.Date.valueOf(dateFormat.format(exdate));
-                    stmt.setDate(5, sqlDate);
-                }
-                if(eldate == null) {
-                    stmt.setDate(6, null);
-                } else {
-                    sqlDate = java.sql.Date.valueOf(dateFormat.format(eldate));
-                    stmt.setDate(6, sqlDate);
-                }
-                stmt.setFloat(7, gross_profit_margin);
-                stmt.setFloat(8, operating_profit_margin);
-                stmt.setFloat(9, book_value_per_share);
-                stmt.setFloat(10, earning_before_tax_margin);
-                stmt.setString(11, stockid);
-                stmt.setInt(12, year);
-                stmt.executeUpdate();
-                stmt.close();
-                if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
-                if(mConnection != null) {
-                    mConnection.close();
-                    mConnection = null;
-                }
-            } catch(Exception e) {
-                e.printStackTrace();
-                System.out.println("update " + tableName + " fail");
-            }
+            if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
+//            try {
+//                connectToServer();
+//
+//                PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
+//                        " SET roe = ?, roa = ? , stock_dividend = ? , cash_dividend = ? , " +
+//                        "exclusion_date = ? , elimination_date = ? , " +
+//                        "gross_profit_margin = ? , operating_profit_margin = ? ," +
+//                        "book_value_per_share = ? , earning_before_tax_margin = ?  " +
+//                        "WHERE stockid = ? AND year = ?");
+//                stmt.setFloat(1, roe);
+//                stmt.setFloat(2, roa);
+//                stmt.setFloat(3, stock_dividend);
+//                stmt.setFloat(4, cash_dividend);
+//                java.sql.Date sqlDate = null;
+//                if(exdate == null) {
+//                    stmt.setDate(5, null);
+//                } else {
+//                    sqlDate = java.sql.Date.valueOf(dateFormat.format(exdate));
+//                    stmt.setDate(5, sqlDate);
+//                }
+//                if(eldate == null) {
+//                    stmt.setDate(6, null);
+//                } else {
+//                    sqlDate = java.sql.Date.valueOf(dateFormat.format(eldate));
+//                    stmt.setDate(6, sqlDate);
+//                }
+//                stmt.setFloat(7, gross_profit_margin);
+//                stmt.setFloat(8, operating_profit_margin);
+//                stmt.setFloat(9, book_value_per_share);
+//                stmt.setFloat(10, earning_before_tax_margin);
+//                stmt.setString(11, stockid);
+//                stmt.setInt(12, year);
+//                stmt.executeUpdate();
+//                stmt.close();
+//                if(mConnection != null) {
+//                    mConnection.close();
+//                    mConnection = null;
+//                }
+//            } catch(Exception e) {
+//                e.printStackTrace();
+//                System.out.println("update " + tableName + " fail");
+//            }
+            return true;
+        } else {
+            if (DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + year + " not exist, try insert");
+            initInsertTable();
+            insertValue("stockid", stockid);
+            insertValue("year", year);
+            insertValue("roe", roe);
+            insertValue("roa", roa);
+            insertValue("stock_dividend", stock_dividend);
+            insertValue("cash_dividend", cash_dividend);
+            insertValue("exclusion_date", exdate);
+            insertValue("elimination_date", eldate);
+            insertValue("gross_profit_margin", gross_profit_margin);
+            insertValue("operating_profit_margin", operating_profit_margin);
+            insertValue("book_value_per_share", book_value_per_share);
+            insertValue("earning_before_tax_margin", earning_before_tax_margin);
+            insertIntoTable(tableName);
+            if (DEBUG_VERBOSE) System.out.println("insert " + tableName + " success");
+//        String query = "insert into " + tableName + " values ( '" + stockid + "', " +
+//                year + ", " + roe + ", " + roa + ", " + stock_dividend + ", " + cash_dividend +
+//                ", " + exDateString + ", " + elDateString + ", " +
+//                gross_profit_margin + ", " + operating_profit_margin + ", " +
+//                book_value_per_share + ", " + earning_before_tax_margin + ")";
+//        try {
+//            if(DEBUG_SQL_CMD) System.out.println(query);
+//            connectToServer();
+//            mStatement.executeUpdate(query);
+//            mStatement.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
+//            if(DEBUG_VERBOSE) System.out.println("insert " + tableName + " success");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            System.out.println("insert " + tableName + " failed");
+//            System.exit(1);
+//        }
             return true;
         }
-        if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + year + " not exist, try insert");
-
-        String query = "insert into " + tableName + " values ( '" + stockid + "', " +
-                year + ", " + roe + ", " + roa + ", " + stock_dividend + ", " + cash_dividend +
-                ", " + exDateString + ", " + elDateString + ", " +
-                gross_profit_margin + ", " + operating_profit_margin + ", " +
-                book_value_per_share + ", " + earning_before_tax_margin + ")";
-        try {
-            if(DEBUG_SQL_CMD) System.out.println(query);
-            connectToServer();
-            mStatement.executeUpdate(query);
-            mStatement.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
-            if(DEBUG_VERBOSE) System.out.println("insert " + tableName + " success");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("insert " + tableName + " failed");
-            System.exit(1);
-        }
-        return true;
     }
 
     public boolean insertAnnualDividendTable(String stockid, ArrayList<HTMLParserDividendListener.dividendRecord> aList) {
@@ -254,49 +340,61 @@ public class StockSqlUtil {
                 continue;
             }
             if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + rec.year + " not exist, try insert");
-            query = "insert into " + tableName + " values ( '" + stockid + "', " +
-                    rec.year + ", " +
-                    rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH] + ", " +
-                    rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN] + ", " +
-                    rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP] + ", " +
-                    rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK] + ", " +
-                    rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL] + ")";
-            try {
-                if(DEBUG_SQL_CMD) System.out.println(query);
-                connectToServer();
-                mStatement.executeUpdate(query);
-                mStatement.close();
-                if(mConnection != null) {
-                    mConnection.close();
-                    mConnection = null;
-                }
-                if(DEBUG_VERBOSE) System.out.println("insert success");
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.out.println("insert failed");
-                System.exit(1);
-            }
+            initInsertTable();
+            insertValue("stockid", stockid);
+            insertValue("year", rec.year);
+            insertValue("cash_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH]);
+            insertValue("earn_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN]);
+            insertValue("stock_dividend_capital", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP]);
+            insertValue("stock_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK]);
+            insertValue("total_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL]);
+            insertIntoTable(tableName);
+//            query = "insert into " + tableName + " values ( '" + stockid + "', " +
+//                    rec.year + ", " +
+//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH] + ", " +
+//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN] + ", " +
+//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP] + ", " +
+//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK] + ", " +
+//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL] + ")";
+//            try {
+//                if(DEBUG_SQL_CMD) System.out.println(query);
+//                connectToServer();
+//                mStatement.executeUpdate(query);
+//                mStatement.close();
+//                if(mConnection != null) {
+//                    mConnection.close();
+//                    mConnection = null;
+//                }
+//                if(DEBUG_VERBOSE) System.out.println("insert success");
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                System.out.println("insert failed");
+//                System.exit(1);
+//            }
         }
         return true;
     }
 
     public boolean checkIdExistInTable(String tableName, String stockid) {
-        String checkQuery = "";
-            checkQuery = "select * from " + tableName +
-                    " where stockid = '" + stockid + "'";
+//        String checkQuery = "";
+//            checkQuery = "select * from " + tableName +
+//                    " where stockid = '" + stockid + "'";
         boolean retval = false;
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            mResultSet = performSelectTable(tableName);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
-
+            finishSelectQuery();
+//            mResultSet.close();
+//            mResultSet = null;
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -304,21 +402,25 @@ public class StockSqlUtil {
     }
 
     public boolean checkIdExistInTable(String tableName, String stockid, int year) {
-        String checkQuery = "";
-        checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' and year = " + year;
+//        String checkQuery = "";
+//        checkQuery = "select * from " + tableName + " where stockid = '" + stockid + "' and year = " + year;
         boolean retval = false;
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue("year", year);
+            mResultSet = performSelectTable(tableName);
+//            mResultSet = mStatement.executeQuery(checkQuery);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -326,21 +428,26 @@ public class StockSqlUtil {
     }
 
     public boolean checkIdYearMonthExistInTable(String tableName, String stockid, int year, int month) {
-        String checkQuery = "";
-        checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' and year = " + year + " and month = " + month;
+//        String checkQuery = "";
+//        checkQuery = "select * from " + tableName + " where stockid = '" + stockid + "' and year = " + year + " and month = " + month;
         boolean retval = false;
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue("year", year);
+            addSelParmValue("month", month);
+            mResultSet = performSelectTable(tableName);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -348,21 +455,26 @@ public class StockSqlUtil {
     }
 
     public boolean checkIdYearSeasonExistInTable(String tableName, String stockid, int year, int season) {
-        String checkQuery = "";
-        checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' and year = " + year + " and season = " + season;
+//        String checkQuery = "";
+//        checkQuery = "select * from " + tableName + " where stockid = '" + stockid + "' and year = " + year + " and season = " + season;
         boolean retval = false;
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue("year", year);
+            addSelParmValue("season", season);
+            performSelectTable(tableName);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -376,16 +488,21 @@ public class StockSqlUtil {
         boolean retval = false;
         if(DEBUG_SQL_CMD) System.out.println("query:" + checkQuery);
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue("date", dateStr);
+            performSelectTable(tableName);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -393,22 +510,26 @@ public class StockSqlUtil {
     }
 
     public boolean checkColumnExist(String tableName, String colname1, String colval1 , String colname2, String colval2) {
-        String checkQuery = "";
-        checkQuery = "select * from " + tableName +
-                " where " +colname1 + " = '" + colval1 + "' and "+ colname2+" = '" + colval2 + "'";
+//        String checkQuery = "";
+//        checkQuery = "select * from " + tableName + " where " +colname1 + " = '" + colval1 + "' and "+ colname2+" = '" + colval2 + "'";
         boolean retval = false;
-        if(DEBUG_SQL_CMD) System.out.println("query:" + checkQuery);
+//        if(DEBUG_SQL_CMD) System.out.println("query:" + checkQuery);
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue(colname1, colval1);
+            addSelParmValue(colname2, colval2);
+            performSelectTable(tableName);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -426,16 +547,21 @@ public class StockSqlUtil {
             checkQuery = checkQuery + " and " + colName + " = '" + colStr + "'";
         }
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue(colName, colStr);
+            performSelectTable(tableName);
             if(mResultSet.next()) {
                 retval = true;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -443,14 +569,13 @@ public class StockSqlUtil {
     }
 
 
-    public void analysisReturnRatio(String stockid) {
-        String checkQuery;
+    public void analysisReturnRatio(String stockid, Date analysisDate, String tab) {
+//        String checkQuery;
         String tableName = annualDividendTable;
-        checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' order by year desc";
+//        checkQuery = "select * from " + tableName + " where stockid = '" + stockid + "' order by year desc";
         float tdiv = 0, sdiv = 0, prz = 0, cdiv = 0;
         try {
-            getLastReturnRatio(stockid);
+            getLastReturnRatio(stockid, true);
             prz = mBuyinPrise;
             tableName = annuallyInfoTable;
             initSelectTable();
@@ -463,35 +588,29 @@ public class StockSqlUtil {
                 tdiv = sdiv + cdiv;
                 if(DEBUG_VERBOSE) System.out.println("tdiv:" + tdiv + " sdiv:" + sdiv);
             }
-            mResultSet.close();
-
-            connectToServer();
-//            mResultSet = mStatement.executeQuery(checkQuery);
-//            if(mResultSet.next()) {
-//                tdiv = mResultSet.getFloat("total_dividend");
-//                sdiv = mResultSet.getFloat("stock_dividend");
-//                if(DEBUG_VERBOSE) System.out.println("tdiv:" + tdiv + " sdiv:" + sdiv);
-//            }
-//            mResultSet.close();
-
-            tableName = dailyInfoTable;
+            finishSelectQuery();
+            if(analysisDate == null) {
+                analysisDate = mLastBuyDate;
+            }
+            if(tab == null) {
+                tableName = dailyInfoTable;
+            } else {
+                tableName = tab;
+            }
             float ratio = 0;
             if(prz != 0) ratio = (tdiv * 100 )/prz;
-
-            if(DEBUG_VERBOSE) System.out.println("ratio : " + ratio);
-            PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-                    " SET returnratio = ?" +
-                    " WHERE stockid = ? AND date = ?");
-            stmt.setFloat(1, ratio);
-            stmt.setString(2, stockid);
-            stmt.setDate(3, mLastBuyDate);
-            int ret = stmt.executeUpdate();
-            stmt.close();
-            if(DEBUG_VERBOSE) System.out.println("update success, ret:" + ret);
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            StockSqlUtil.performanceEntry pe = getPerformance(stockid, false, true);
+            pe.returnratio = ratio;
+            float score = getScore(pe, false);
+            String stra = getBuyinSelloutStrategy(stockid, pe);
+            System.out.println("tdiv:" + tdiv + " prz:" + prz + " rr:" + ratio + " score:" + score);
+            initUpdateTable();
+            addUpdateCol("returnratio", ratio);
+            addUpdateCol("score", score);
+            addUpdateCol("suggestion", stra);
+            addUpdateParam("stockid", stockid);
+            addUpdateParam("date", analysisDate);
+            performUpdateTable(tableName);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -504,18 +623,50 @@ public class StockSqlUtil {
 
     public String convertJavaDateToMySQLStr(Date date) {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        return dateFormat.format(date);
+        if(date != null) {
+            return dateFormat.format(date);
+        }
+        return "null";
     }
 
-    Date convertStrToJavaDate(String dateStr) {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    public int getWeekdatFromDate(Date date) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        int dayOfWeek = c.get(Calendar.DAY_OF_WEEK);
+        return dayOfWeek;
+    }
+    public int getMonthdateFromDate(Date date) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        int dd = c.get(Calendar.DAY_OF_MONTH);
+        return dd;
+    }
+    public int getMonthFromDate(Date date) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        int mm = c.get(Calendar.MONTH);
+        return mm;
+    }
+    public int getYearFromDate(Date date) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        int yy = c.get(Calendar.YEAR);
+        return yy;
+    }
+
+    public Date convertStrToJavaDate(String dateStr) {
+        DateFormat dateFormat;
+        if(dateStr.indexOf("-") >= 0) {
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        } else {
+            dateFormat = new SimpleDateFormat("yyyyMMdd");
+        }
         try {
             return dateFormat.parse(dateStr);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
-
     }
     ArrayList<String> insertData = null;
     String insertTableName;
@@ -540,7 +691,12 @@ public class StockSqlUtil {
         insertData.add(insertStr);
     }
     public void insertValue(String name, Date value) {
-        String insertStr = "'" + convertJavaDateToMySQLStr(value) + "'";
+        String insertStr;
+        if(value != null) {
+            insertStr = "'" + convertJavaDateToMySQLStr(value) + "'";
+        } else {
+            insertStr = " null ";
+        }
         insertData.add(insertStr);
     }
     public void insertValue(String name, boolean value) {
@@ -582,13 +738,16 @@ public class StockSqlUtil {
         String query = "insert into " + insertTableName + " values ( " + insertValueStr + " )";
         if(DEBUG_SQL_CMD) System.out.println(query);
         try {
-            connectToServer();
+//            if(!isConnected()) connectToServer();
+            getConnectionStatement();
             mStatement.executeUpdate(query);
-            mStatement.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            closeConnectionStatement();
+//            mStatement.close();
+//            mStatement = null;
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
             if(DEBUG_VERBOSE) System.out.println("insert success");
         } catch (Exception e) {
             e.printStackTrace();
@@ -608,13 +767,15 @@ public class StockSqlUtil {
         String query = "insert into " + insertTableName + " values ( " + insertValueStr + " )";
         if(DEBUG_SQL_CMD) System.out.println(query);
         try {
-            connectToServer();
+//            connectToServer();
+            getConnectionStatement();
             mStatement.executeUpdate(query);
-            mStatement.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            closeConnectionStatement();
+//            mStatement.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
             if(DEBUG_VERBOSE) System.out.println("insert success");
         } catch (Exception e) {
             e.printStackTrace();
@@ -636,22 +797,27 @@ public class StockSqlUtil {
     java.sql.Date mLastBuyDate = null;
     float getReturnRatio(String stockid, Date date) {
         String tableName = dailyInfoTable;
-        String dateStr = convertJavaDateToMySQLStr(date);
-        String checkQuery = "select * from " + tableName + " where stockid = " + stockid + " and date = '" + dateStr + "';";
+//        String dateStr = convertJavaDateToMySQLStr(date);
+//        String checkQuery = "select * from " + tableName + " where stockid = " + stockid + " and date = '" + dateStr + "';";
         float retr = 0;
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue("date", date);
+            performSelectTable(tableName);
+//            mResultSet = mStatement.executeQuery(checkQuery);
             if (mResultSet.next()) {
                 mBuyinReturnRatio = retr = mResultSet.getFloat("returnratio");
                 mBuyinPrise = mResultSet.getFloat("dealprise");
                 mLastBuyDate = mResultSet.getDate("date");
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch(Exception e) {
             e.printStackTrace();
             retr = -1;
@@ -659,27 +825,35 @@ public class StockSqlUtil {
         return retr;
     }
     public float getLastReturnRatio(String stockid) {
+        return getLastReturnRatio(stockid, false);
+    }
+    public float getLastReturnRatio(String stockid, boolean allowZeroRatio) {
         String tableName = dailyInfoTable;
-        String checkQuery = "select * from " + tableName + " where stockid = " + stockid + " order by date desc;";
+//        String checkQuery = "select * from " + tableName + " where stockid = " + stockid + " order by date desc;";
         float retr = 0;
         int i = 0;
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelOrder("date", false);
+            performSelectTable(tableName);
             while(i < 3 && mResultSet.next()) {
                 mBuyinReturnRatio = retr = mResultSet.getFloat("returnratio");
-                if(retr != 0) {
-                    mBuyinPrise = mResultSet.getFloat("dealprise");
-                    mLastBuyDate = mResultSet.getDate("date");
+                mBuyinPrise = mResultSet.getFloat("dealprise");
+                mLastBuyDate = mResultSet.getDate("date");
+                if(retr != 0 || allowZeroRatio) {
                     break;
                 }
                 i++;
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+            finishSelectQuery();
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch(Exception e) {
             e.printStackTrace();
             retr = -1;
@@ -754,16 +928,16 @@ public class StockSqlUtil {
         }
         if(DEBUG_SQL_CMD)
             System.out.println(deleteStr);
-        connectToServer();
+//        connectToServer();
         try {
             PreparedStatement stmt = mConnection.prepareStatement(deleteStr);
             stmt.executeUpdate();
             stmt.close();
             if(DEBUG_VERBOSE) System.out.println("update " + tab + " success");
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1057,28 +1231,37 @@ public class StockSqlUtil {
                         " year:" + annualYear +
                         " season:" + preTaxInfo.season +
                         " exist in table:" + tableName + " , try update");
-                try {
-                    connectToServer();
-                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-                            " SET post_tax_surplus = ?, post_tax_increase_ratio = ? , pre_tax_surplus = ? , pre_tax_increase_ratio = ? " +
-                            "WHERE stockid = ? AND year = ? AND season = ?");
-                    stmt.setInt(1, postTaxInfo.earning);
-                    stmt.setFloat(2, postTaxInfo.yearIncRatio);
-                    stmt.setInt(3, preTaxInfo.earning);
-                    stmt.setFloat(4, preTaxInfo.yearIncRatio);
-                    stmt.setString(5, stockid);
-                    stmt.setInt(6, annualYear);
-                    stmt.setInt(7, preTaxInfo.season);
-                    stmt.executeUpdate();
-                    stmt.close();
-                    if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
-                    if(mConnection != null) {
-                        mConnection.close();
-                        mConnection = null;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                initUpdateTable();
+                addUpdateCol("post_tax_surplus", postTaxInfo.earning);
+                addUpdateCol("post_tax_increase_ratio", postTaxInfo.yearIncRatio);
+                addUpdateCol("pre_tax_surplus", preTaxInfo.earning);
+                addUpdateCol("pre_tax_increase_ratio", preTaxInfo.yearIncRatio);
+                addUpdateParam("stockid", stockid);
+                addUpdateParam("year", annualYear);
+                addUpdateParam("season", preTaxInfo.season);
+                performUpdateTable(tableName);
+//                try {
+//                    connectToServer();
+//                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
+//                            " SET post_tax_surplus = ?, post_tax_increase_ratio = ? , pre_tax_surplus = ? , pre_tax_increase_ratio = ? " +
+//                            "WHERE stockid = ? AND year = ? AND season = ?");
+//                    stmt.setInt(1, postTaxInfo.earning);
+//                    stmt.setFloat(2, postTaxInfo.yearIncRatio);
+//                    stmt.setInt(3, preTaxInfo.earning);
+//                    stmt.setFloat(4, preTaxInfo.yearIncRatio);
+//                    stmt.setString(5, stockid);
+//                    stmt.setInt(6, annualYear);
+//                    stmt.setInt(7, preTaxInfo.season);
+//                    stmt.executeUpdate();
+//                    stmt.close();
+//                    if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
+//                    if(mConnection != null) {
+//                        mConnection.close();
+//                        mConnection = null;
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
             } else {
                 ArrayList<String> aList = initInsertTable();
                 insertValue("stockid", stockid, aList);
@@ -1102,29 +1285,32 @@ public class StockSqlUtil {
         for(int i = 0;i < recList.size(); i++) {
             StackBasicInformation.seasonRecord rec = recList.get(i);
             if(checkIdYearSeasonExistInTable(tableName, stockid, rec.year, rec.season)) {
-                if(DEBUG_VERBOSE) System.out.println("Id:" + stockid +
-                        " year:" + rec.year +
-                        " season:" + rec.season +
-                        " exist in table:" + tableName + ", try update");
-                connectToServer();
-                try {
-                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-                            " SET earn_per_share = ? " +
-                            "WHERE stockid = ? AND year = ? AND season = ?");
-                    stmt.setFloat(1, rec.share);
-                    stmt.setString(2, stockid);
-                    stmt.setInt(3, rec.year);
-                    stmt.setInt(4, rec.season);
-                    stmt.executeUpdate();
-                    stmt.close();
-                    if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
-                    if(mConnection != null) {
-                        mConnection.close();
-                        mConnection = null;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                if(DEBUG_VERBOSE) System.out.println("Id:" + stockid + " year:" + rec.year + " season:" + rec.season + " exist in table:" + tableName + ", try update");
+                initUpdateTable();
+                addUpdateCol("earn_per_share", rec.share);
+                addUpdateParam("stockid", stockid);
+                addUpdateParam("year", rec.year);
+                addUpdateParam("season", rec.season);
+                performUpdateTable(tableName);
+//                connectToServer();
+//                try {
+//                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
+//                            " SET earn_per_share = ? " +
+//                            "WHERE stockid = ? AND year = ? AND season = ?");
+//                    stmt.setFloat(1, rec.share);
+//                    stmt.setString(2, stockid);
+//                    stmt.setInt(3, rec.year);
+//                    stmt.setInt(4, rec.season);
+//                    stmt.executeUpdate();
+//                    stmt.close();
+//                    if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
+//                    if(mConnection != null) {
+//                        mConnection.close();
+//                        mConnection = null;
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
             } else {
                 ArrayList<String> aList = initInsertTable();
                 insertValue("stockid", stockid, aList);
@@ -1143,27 +1329,30 @@ public class StockSqlUtil {
         for(int i = 0;i < recList.size(); i++) {
             StackBasicInformation.seasonRecord rec = recList.get(i);
             if(checkIdExistInTable(tableName, stockid, rec.year)) {
-                if(DEBUG_VERBOSE) System.out.println("Id:" + stockid +
-                        " year:" + rec.year +
-                        " exist in table:" + tableName + ", try update");
-                connectToServer();
-                try {
-                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
-                            " SET earn_per_share = ? " +
-                            "WHERE stockid = ? AND year = ?");
-                    stmt.setFloat(1, rec.share);
-                    stmt.setString(2, stockid);
-                    stmt.setInt(3, rec.year);
-                    stmt.executeUpdate();
-                    stmt.close();
-                    if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
-                    if(mConnection != null) {
-                        mConnection.close();
-                        mConnection = null;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+                if(DEBUG_VERBOSE) System.out.println("Id:" + stockid + " year:" + rec.year + " exist in table:" + tableName + ", try update");
+                initUpdateTable();
+                addUpdateCol("earn_per_share", rec.share);
+                addUpdateParam("stockid", stockid);
+                addUpdateParam("year", rec.year);
+                performUpdateTable(tableName);
+//                connectToServer();
+//                try {
+//                    PreparedStatement stmt = mConnection.prepareStatement("UPDATE " + tableName +
+//                            " SET earn_per_share = ? " +
+//                            "WHERE stockid = ? AND year = ?");
+//                    stmt.setFloat(1, rec.share);
+//                    stmt.setString(2, stockid);
+//                    stmt.setInt(3, rec.year);
+//                    stmt.executeUpdate();
+//                    stmt.close();
+//                    if(DEBUG_VERBOSE) System.out.println("update " + tableName + " success");
+//                    if(mConnection != null) {
+//                        mConnection.close();
+//                        mConnection = null;
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
             } else {
                 ArrayList<String> aList = initInsertTable();
                 insertValue("stockid", stockid, aList);
@@ -1223,31 +1412,55 @@ public class StockSqlUtil {
     public Date mRetrieveDate = null;
     public float getPrise(String stockid, Date date) {
         String tableName = dailyInfoTable;
-        String checkQuery = "select dealprise,date from " +
-                tableName +
-                " where stockid = '" + stockid + "'";
+//        String checkQuery = "select dealprise,date from " +
+//                tableName +
+//                " where stockid = '" + stockid + "'";
+//        if(date == null) {
+//            checkQuery = checkQuery + " order by date desc";
+//        } else {
+//            checkQuery = checkQuery + " and date = '" + convertJavaDateToMySQLStr(date) + "'";
+//        }
+        mRetrievePrise = 0;
+        mRetrieveDate = null;
+        initSelectTable();
+        addSelCol("dealprise");
+        addSelCol("date");
+        addSelParmValue("stockid", stockid);
         if(date == null) {
-            checkQuery = checkQuery + " order by date desc";
+            addSelOrder("date", false);
         } else {
-            checkQuery = checkQuery + " and date = '" + convertJavaDateToMySQLStr(date) + "'";
+            addSelParmValue("date", date);
         }
+        performSelectTable(tableName);
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
-            if(mResultSet.next()) {
+            if (mResultSet.next()) {
                 mRetrievePrise = mResultSet.getFloat("dealprise");
                 java.sql.Date sqlDate = mResultSet.getDate("date");
                 mRetrieveDate = convertMySQLDateToJava(sqlDate);
-                if(DEBUG_VERBOSE) System.out.println("mRetrievePrise:" + mRetrievePrise + " mRetrieveDate:" + mRetrieveDate);
+                if (DEBUG_VERBOSE)
+                    System.out.println("mRetrievePrise:" + mRetrievePrise + " mRetrieveDate:" + mRetrieveDate);
             }
-            mResultSet.close();
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
-        } catch (Exception e) {
+        }catch (Exception e) {
             e.printStackTrace();
         }
+        finishSelectQuery();
+//        try {
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+//            if(mResultSet.next()) {
+//                mRetrievePrise = mResultSet.getFloat("dealprise");
+//                java.sql.Date sqlDate = mResultSet.getDate("date");
+//                mRetrieveDate = convertMySQLDateToJava(sqlDate);
+//                if(DEBUG_VERBOSE) System.out.println("mRetrievePrise:" + mRetrievePrise + " mRetrieveDate:" + mRetrieveDate);
+//            }
+//            mResultSet.close();
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return mRetrievePrise;
     }
     public class performanceEntry {
@@ -1270,7 +1483,7 @@ public class StockSqlUtil {
         public float nv = 0;
         public float season[] = new float[4];
         public float year[] = new float[4];
-        public float div[] = new float[4];
+        public ArrayList<Float> div = new ArrayList<>();
         public int lastStrategyId = -1;
         /* If we have unsold item, we need do "buyin strategy estimation analysis" */
         public boolean hasUnsold = false;
@@ -1327,6 +1540,9 @@ public class StockSqlUtil {
         parmData.add(insertStr);
     }
     public ResultSet performSelectTable(String tab) {
+        return performSelectTable(tab, true);
+    }
+    public ResultSet performSelectTable(String tab, boolean printTraceAndExit) {
         String selColStr = "select ";
         if(colData.size() == 0) {
             selColStr += " * ";
@@ -1357,25 +1573,29 @@ public class StockSqlUtil {
         }
         if(DEBUG_SQL_CMD) System.out.println(selColStr);
         try {
-            connectToServer();
+//            connectToServer();
+            getConnectionStatement();
             mResultSet = mStatement.executeQuery(selColStr);
             return mResultSet;
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("insert failed");
-            System.exit(1);
+            if(printTraceAndExit) {
+                e.printStackTrace();
+                System.out.println("insert failed");
+                System.exit(1);
+            }
         }
         return null;
     }
 
     public void finishSelectQuery() {
         try {
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
             if(mResultSet != null) {
                 mResultSet.close();
+                mResultSet = null;
+            }
+            if(mStatement != null) {
+                mStatement.close();
+                mStatement = null;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1461,15 +1681,17 @@ public class StockSqlUtil {
         addSelCol("total_dividend");
         addSelParmValue("stockid",stockid);
         addSelOrder("year", false);
+
         ResultSet resSet = performSelectTable(tableName);
+
         try {
             int i = 0;
             while (resSet.next()) {
-                pe.div[i] = resSet.getFloat("total_dividend");
+                pe.div.add(resSet.getFloat("total_dividend"));
                 i ++;
-                if(i == 4) {
-                    break;
-                }
+//                if(i == 4) {
+//                    break;
+//                }
             }
         } catch(Exception e) {
             e.printStackTrace();
@@ -1480,8 +1702,7 @@ public class StockSqlUtil {
 
     public performanceEntry getPerformance(String stockid, boolean updateDB, boolean checkOverAll) {
         String tableName = buyinTable;
-        String checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' order by buyday desc";
+//        String checkQuery = "select * from " + tableName + " where stockid = '" + stockid + "' order by buyday desc";
         float prz = getPrise(stockid, null);
         float min = 1000000, max = 0;
         float dealprz, totalPrise = 0, rr = 0;
@@ -1492,8 +1713,12 @@ public class StockSqlUtil {
         performanceEntry performEnt = new performanceEntry();
         rr = getLastReturnRatio(stockid);/*mResultSet.getFloat("returnratio");*/
         try {
-            connectToServer();
-            mResultSet = mStatement.executeQuery(checkQuery);
+//            connectToServer();
+//            mResultSet = mStatement.executeQuery(checkQuery);
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelOrder("buyday", false);
+            performSelectTable(tableName);
             while(mResultSet.next()) {
                 dealprz = mResultSet.getFloat("prise");
                 if(sid < 0) sid = mResultSet.getInt("strategyindex");
@@ -1517,7 +1742,8 @@ public class StockSqlUtil {
                 count ++;
                 totalPrise += dealprz;
             }
-            mResultSet.close();
+            finishSelectQuery();
+//            mResultSet.close();
             if(count > 0) {
                 performEnt.count = count;
                 performEnt.perform = total / totalPrise;
@@ -1545,10 +1771,10 @@ public class StockSqlUtil {
                 performEnt.lastStrategyId = sid;
             }
             if(DEBUG_VERBOSE) System.out.println("performance, total:" + total);
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1730,7 +1956,12 @@ public class StockSqlUtil {
         updateColData.add(insertStr);
     }
     public void addUpdateCol(String name, Date value) {
-        String insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
+        String insertStr;
+        if(value != null) {
+            insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
+        } else {
+            insertStr = name + " = null ";
+        }
         updateColData.add(insertStr);
     }
     public void addUpdateCol(String name, boolean value) {
@@ -1775,16 +2006,16 @@ public class StockSqlUtil {
         }
         if(DEBUG_SQL_CMD)
             System.out.println(updateColStr);
-        connectToServer();
+//        connectToServer();
         try {
             PreparedStatement stmt = mConnection.prepareStatement(updateColStr);
             stmt.executeUpdate();
             stmt.close();
             if(DEBUG_VERBOSE) System.out.println("update " + tab + " success");
-            if(mConnection != null) {
-                mConnection.close();
-                mConnection = null;
-            }
+//            if(mConnection != null) {
+//                mConnection.close();
+//                mConnection = null;
+//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -1822,7 +2053,7 @@ public class StockSqlUtil {
         String tableName= buyinTableAnalysis;
         updateBuyinAnalysis(tableName, stockid, pe, false);
     }
-    public static float getRoeScore(float roe) {
+    public float getRoeScore(float roe) {
         if(roe > 2)
             return 2;
         else if(roe > 0)
@@ -1831,7 +2062,7 @@ public class StockSqlUtil {
             return 0;
         return -1;
     }
-    public static float getRRScore(float rr) {
+    public float getRRScore(float rr) {
         if(rr > 10)
             return 2;
         else if(rr > 8)
@@ -1840,7 +2071,7 @@ public class StockSqlUtil {
             return 0;
         return -1;
     }
-    public static float getSeasonScore(float[] se) {
+    public float getSeasonScore(float[] se) {
         float c = 0;
         for(int i = 0;i < 4;i++) {
             c += (se[i] > 0 ? 1:0);
@@ -1850,30 +2081,73 @@ public class StockSqlUtil {
         else if(c > 1) return 0;
         return -1;
     }
-    public static float getAnnualScore(float[] sa, float[] se) {
-        if(se[0] + se[1] + se[2] + se[3] > sa[0]) {
+    public float getAnnualScore(float[] sa, float[] se) {
+        float yearPredDiff = se[0] + se[1] + se[2] + se[3] - sa[0];
+        if((yearPredDiff/sa[0]) > 0.2) {
+            /* Earn per share increase more than 20% */
             return 2;
+        } else if((yearPredDiff/sa[0]) > 0) {
+            /* Earn per share increase */
+            return 1;
+        } else if((yearPredDiff/sa[0]) > -0.10) {
+            /* Earn per share drop less than 10% */
+            return 0;
         }
+        /* Earn per share drop more than 10% */
         return -1;
     }
-    public static float getAnnouncedScore(boolean ann) {
+    public float getAnnouncedScore(boolean ann) {
         if(ann) return 1;
         return 0;
     }
 
+    private float getAnnualShareScore(ArrayList<Float> div, float prz) {
+        float totalScore = 0;
+        float rr;
+        for(int i = 0;i < div.size();i++) {
+            rr = div.get(i) / prz;
+            if(rr > 0.1) {
+                totalScore += 1.4;
+            } else if(rr > 0.05) {
+                totalScore += 1.2;
+            } else if(rr > 0) {
+                totalScore += 1;
+            } else {
+                totalScore --;
+            }
+        }
+        /*
+        * Total score : 0 : means half time the share is positive
+        * max : div.length * 1.4
+        * assume : 2/3 is positive , 1/3 is above average 0.05, the score will be length * 1/3 * 1.2 = 0.4 * length
+        * assume : 3/4 is positive , 1/2 is above average 0.05, the score will be length * 1/2 * 1.2 = 0.6 * length
+         * */
+        if(totalScore > (0.6 * div.size())) {
+            return 2;
+        }
+        else if(totalScore > (0.4 * div.size())) {
+            return 1;
+        }
+        else if(totalScore < 0) {
+            return -1;
+        }
+        return 0;
+    }
     public float getScore(performanceEntry pe, boolean divAnnounced) {
-        float score = 0;
-        float roeScore = 0;
-        float rrScore = 0;
-        float seasonEarnScore = 0;
-        float yearEarnScore = 0;
-        float announcedScore = 0;
+        float score;
+        float roeScore;
+        float rrScore;
+        float seasonEarnScore;
+        float yearEarnScore;
+        float announcedScore;
+        float histShareScore;
         roeScore = getRoeScore(pe.roe);
         rrScore = getRRScore(pe.returnratio);
         seasonEarnScore = getSeasonScore(pe.season);
         yearEarnScore = getAnnualScore(pe.year, pe.season);
         announcedScore = getAnnouncedScore(divAnnounced);
-        score = roeScore + rrScore + seasonEarnScore + yearEarnScore + announcedScore;
+        histShareScore = getAnnualShareScore(pe.div, pe.lastprise);
+        score = roeScore + rrScore + seasonEarnScore + yearEarnScore + announcedScore + histShareScore;
         return score;
     }
 
@@ -1910,7 +2184,7 @@ public class StockSqlUtil {
                 insertValue("year" + (i+1) + "_earn", pe.year[i], aList);
             }
             for(int i = 0;i < 4;i++) {
-                insertValue("year" + (i+1) + "_div", pe.div[i], aList);
+                insertValue("year" + (i+1) + "_div", pe.div.get(i), aList);
             }
             insertIntoTable(tableName, aList);
         } else {
@@ -1942,7 +2216,7 @@ public class StockSqlUtil {
                 addUpdateCol("year" + (i+1) + "_earn", pe.year[i]);
             }
             for(int i = 0;i < 4;i++) {
-                addUpdateCol("year" + (i+1) + "_div", pe.div[i]);
+                addUpdateCol("year" + (i+1) + "_div", pe.div.get(i));
             }
             addUpdateParam("stockid", stockid);
             performUpdateTable(tableName);
@@ -2040,5 +2314,248 @@ public class StockSqlUtil {
             tableName = watchBuyinHistTable;
             buyin(idEnt.get(i), tableName,1,dateStr,mBuyinPrise,1,"Buyin From Command",mBuyinReturnRatio, BUYIN_REGULAR_DAILY);
         }
+    }
+
+    public void c(String stockid) {
+        String tableName = annualDividendTable;
+        float totalSahre = 0, averageShare = 0, lastShare = 0;
+        int count = 0;
+
+
+        initSelectTable();
+        addSelParmValue("stockid", stockid);
+        addSelOrder("year", false);
+        ResultSet shareRes = performSelectTable(tableName);
+        try {
+            while (shareRes.next()) {
+                totalSahre += shareRes.getFloat("total_dividend");
+                if(count == 0) lastShare = totalSahre;
+                count ++;
+            }
+            shareRes.close();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+        averageShare = totalSahre / count;
+
+        System.out.println("last share " + lastShare + " total share:" + totalSahre + " avg share:" + averageShare);
+        finishSelectQuery();
+    }
+
+    public boolean checkTableExist(String tableName) {
+        boolean retv = false;
+        initSelectTable();
+        ResultSet mSet = performSelectTable(tableName, false);
+        if(mSet != null) {
+            retv = true;
+        }
+        finishSelectQuery();
+        return retv;
+    }
+
+    public boolean performStatement(String stmt, boolean verbosePrint) {
+        getConnectionStatement();
+        try {
+            mStatement.executeUpdate(stmt);
+        } catch (Exception e) {
+            if(verbosePrint) {
+                e.printStackTrace();
+            }
+            return false;
+        }
+        return true;
+
+    }
+    private final String[] dbHistDividendScoreColName = new String[] {
+            "stockid",
+            "stockname",
+            "date",
+            "positive_dividend_score",
+            "return_ratio_score",
+            "three_year_trend_score",
+            "simulation_score",
+            "basic_info_score",
+            "weighted_score"
+    };
+    private final int kHistDividendScoreColIndex_StockId = 0;
+    private final int kHistDividendScoreColIndex_StockName = kHistDividendScoreColIndex_StockId + 1;
+    private final int kHistDividendScoreColIndex_Date = kHistDividendScoreColIndex_StockName + 1;
+    private final int kHistDividendScoreColIndex_PositiveDividendScore = kHistDividendScoreColIndex_Date + 1;
+    private final int kHistDividendScoreColIndex_ReturnRatioScore = kHistDividendScoreColIndex_PositiveDividendScore + 1;
+    private final int kHistDividendScoreColIndex_ThreeYearTrendScore = kHistDividendScoreColIndex_ReturnRatioScore + 1;
+    private final int kHistDividendScoreColIndex_SimulationScore = kHistDividendScoreColIndex_ThreeYearTrendScore + 1;
+    private final int kHistDividendScoreColIndex_BasicInfoScore = kHistDividendScoreColIndex_SimulationScore + 1;
+    private final int kHistDividendScoreColIndex_WeightedScore = kHistDividendScoreColIndex_BasicInfoScore + 1;
+    private String mCreateHistDividendTableQuery = "CREATE TABLE __HIST_DIVIDEND_SCORE_TABLE__ ("
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_StockId] + " VARCHAR(20) NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_StockName] + " VARCHAR(20) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_Date] + " Date NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_PositiveDividendScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_ReturnRatioScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_ThreeYearTrendScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore] + " FLOAT NOT NULL)";
+
+    public void createHistDividendScoreTable(String tableName) {
+        String dbTableName = getTabelNameWithDB(tableName);
+        String query = mCreateHistDividendTableQuery.replace("__HIST_DIVIDEND_SCORE_TABLE__", dbTableName);
+        if(!checkTableExist(tableName)) {
+            boolean retv = performStatement(query, true);
+            if(!retv) {
+                System.err.println("Create table:" + tableName + " failed.");
+            }
+        }
+    }
+
+    private static class HistDivScore {
+        public float rrScore;
+        public float positiveScore;
+        public float threeYearTrendScore;
+        public float simulationScore;
+        public float basicInfoScore;
+        public float weightedScore;
+    };
+    public void insertHistDividendScoreRecord(String tableName, String stockid, String stockName, Date date, HistDivScore score, boolean doUpdate) {
+//        if(checkIdExistInTable(tableName, stockid, convertJavaDateToMySQLStr(date))) {
+        if(checkIdExistInTable(tableName, stockid)) {
+            System.out.println("Record id:" + stockid + " date:" + convertJavaDateToMySQLStr(date) + " exist, do update:" + doUpdate);
+            if(doUpdate) {
+                System.out.println("Update record stockid:" + stockid +
+                        " date:" + convertJavaDateToMySQLStr(date) +
+                        " positive score:" + score.positiveScore +
+                        " return ratio score:" + score.rrScore +
+                        " into table " + tableName);
+                initUpdateTable();
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockName], stockName);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_PositiveDividendScore], score.positiveScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_ReturnRatioScore], score.rrScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_ThreeYearTrendScore], score.threeYearTrendScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore], score.simulationScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore], score.basicInfoScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore], score.weightedScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_Date], date);
+                addUpdateParam(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockId], stockid);
+                performUpdateTable(tableName);
+            }
+        } else {
+            System.out.println("Insert record stockid:" + stockid +
+                    " date:" + convertJavaDateToMySQLStr(date) +
+                    " positive score:" + score.positiveScore +
+                    " return ratio score:" + score.rrScore +
+                    " into table " + tableName);
+            initInsertTable();
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockId],stockid);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockName],stockName);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_Date],date);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_PositiveDividendScore],score.positiveScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_ReturnRatioScore],score.rrScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_ThreeYearTrendScore],score.threeYearTrendScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore],score.simulationScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore],score.basicInfoScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore],score.weightedScore);
+            insertIntoTable(tableName);
+        }
+    }
+
+
+
+    private boolean oShowDebugMessage = false;
+    private float basicInfoOverheadFunc(float basicScore) {
+        /*
+        Basic score distribution :
+        10, 9, 8, 7 : rr , annual, roe, season all good --> no overhead
+        6, 5, 4 : rr , annual, roe, season,  some of then is bad --> overhead -1
+        3, 2, 1 : rr , annual, roe, season,  mush of then is bad --> overhead -3
+        less the l : rr , annual, roe, season,  mush of then is bad --> overhead -5
+        */
+        if(basicScore > 6) return 0;
+        if(basicScore > 3) return -0.1f;
+        if(basicScore > 0) return -0.5f;
+        return -1f;
+    }
+    public void getOneHistDivScore(String stockid, String stockName, Date date) {
+        float rrScore = 0;
+        float rrScoreAvg = 0;
+        performanceEntry pe = getPerformance(stockid, false, true);
+        int positiveCnt = 0;
+        float rr = 0;
+        float diV;
+        float prz;
+        float div3 = -1, div2 = -1;
+        float div3avg = -1, div3avgCheck = -1, div3avgScore = 0;
+        float totalDiv = 0;
+        if(date != null) {
+            prz = getPrise(stockid,date);
+            if(prz == 0) {
+                prz = pe.lastprise;
+            }
+        } else {
+            prz = pe.lastprise;
+            date = new Date();
+        }
+        System.out.println("Prize:" + prz);
+        for(int i = 0;i < pe.div.size();i++) {
+            diV = pe.div.get(i);
+            if(i < 5) totalDiv += diV;
+            if(div3 >= 0) {
+                if(div3avg >= 0) {
+                    div3avgCheck = (div3avg - diV - div2 - div3) / div3avg;
+                    if(div3avgCheck > 0.05) {
+                        div3avgScore += 0.05;
+                    }
+                }
+                if(oShowDebugMessage) System.out.println("div3avg:" + div3avg + " div1:" + diV + " div2:" + div2 + " div3:" + div3 + " div3avgCheck:" + div3avgCheck + " div3avgScore:" + div3avgScore);
+                div3avg = diV + div2 + div3;
+            }
+            if(diV > 0) {
+                positiveCnt ++;
+            }
+            rr = diV / prz;
+            if(rr > 0.1) {
+                rrScore += 1.5;
+            }
+            else if(rr > 0.08) {
+                rrScore += 1.2;
+            }
+            else if(rr > 0.05) {
+                rrScore += 1;
+            }
+            else if(rr > 0) {
+                rrScore += 0.5;
+            }
+            rrScoreAvg += 1;
+            div3 = div2;
+            div2 = diV;
+        }
+        float rrScoreNorm = rrScore / rrScoreAvg;
+        /* Check for NaN */
+        if(rrScoreNorm != rrScoreNorm) {
+            rrScoreNorm = -10;
+        }
+        float posiScoreNorm = (float)positiveCnt / (float)pe.div.size();
+        if(posiScoreNorm != posiScoreNorm) {
+            posiScoreNorm = -10;
+        }
+        float stabilityRatio = 1.0f;
+        if(pe.div.size() > 0) {
+            stabilityRatio = (float)pe.div.size() / 7.0f;
+        }
+        HistDivScore score = new HistDivScore();
+        score.rrScore = rrScoreNorm * stabilityRatio;
+        score.positiveScore = posiScoreNorm * stabilityRatio;
+        score.threeYearTrendScore = div3avgScore;
+        if(pe.div.size() > 0 && prz != 0) {
+            if(pe.div.size() < 5) {
+                score.simulationScore = (totalDiv / pe.div.size()) / prz;
+            } else {
+                score.simulationScore = (totalDiv / 5.0f) / prz;
+            }
+        } else {
+            score.simulationScore = 0;
+        }
+        score.basicInfoScore = getScore(pe, true);
+        score.weightedScore = score.rrScore + score.simulationScore + score.threeYearTrendScore + score.positiveScore + (score.basicInfoScore / 10) + basicInfoOverheadFunc(score.basicInfoScore);
+        insertHistDividendScoreRecord(kHistDividendScoreTableName, stockid, stockName, date, score, true);
     }
 }

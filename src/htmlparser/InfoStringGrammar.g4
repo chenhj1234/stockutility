@@ -144,6 +144,10 @@ numberRule
     | # Empty_Rule
     ;
 
+realNumberRule:
+    REAL_NUMBER
+    ;
+
 titleRule
-    : ~('0'..'9') + '(' REAL_NUMBER ')' + ~('0'..'9') +
+    : ~('0'..'9') + '(' realNumberRule ')' + ~('0'..'9') +
     ;

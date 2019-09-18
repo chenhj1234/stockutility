@@ -5,27 +5,27 @@ import sqlutil.StockSqlUtil;
 import java.util.Date;
 
 public class CurrencyUtil {
-    public class CurrencyEntry {
-        String currencyType;
-        float buyinCash;
-        float buyinSpot; /* 即期 */
-        float buyin10;
-        float buyin30;
-        float buyin60;
-        float buyin90;
-        float buyin120;
-        float buyin150;
-        float buyin180;
-        float selloutCash;
-        float selloutSpot; /* 即期 */
-        float sellout10;
-        float sellout30;
-        float sellout60;
-        float sellout90;
-        float sellout120;
-        float sellout150;
-        float sellout180;
-    }
+//    public class CurrencyEntry {
+//        String currencyType;
+//        float buyinCash;
+//        float buyinSpot; /* 即期 */
+//        float buyin10;
+//        float buyin30;
+//        float buyin60;
+//        float buyin90;
+//        float buyin120;
+//        float buyin150;
+//        float buyin180;
+//        float selloutCash;
+//        float selloutSpot; /* 即期 */
+//        float sellout10;
+//        float sellout30;
+//        float sellout60;
+//        float sellout90;
+//        float sellout120;
+//        float sellout150;
+//        float sellout180;
+//    }
     final String DB_CURRENCY_TYPE = "currency";
     final String DB_CURRENCY_DATE = "date";
     final String DB_CURRENCY_BUYIN = "buyin";
@@ -65,6 +65,41 @@ public class CurrencyUtil {
     final int DB_CURRENCY_SELLOUT_120_INDEX = 18;
     final int DB_CURRENCY_SELLOUT_150_INDEX = 19;
     final int DB_CURRENCY_SELLOUT_180_INDEX = 20;
+
+    String mCreateCurrencyQuery = "CREATE TABLE __CURRENCY_TABLE__ ("
+            + DB_CURRENCY_TYPE + " VARCHAR(45) NOT NULL,"
+            + DB_CURRENCY_DATE + " DATE NOT NULL,"
+            + DB_CURRENCY_BUYIN + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_SPOT + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_10 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_30 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_60 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_90 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_120 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_150 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_BUYIN_180 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_SPOT + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_10 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_30 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_60 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_90 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_120 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_150 + " FLOAT NOT NULL,"
+            + DB_CURRENCY_SELLOUT_180 + " FLOAT NOT NULL)";
+
+    public void createCurrencyTable(String tableName) {
+        StockSqlUtil sSqlU = StockSqlUtil.getInstence();
+        String dbTableName = sSqlU.getTabelNameWithDB(tableName);
+        String query = mCreateCurrencyQuery.replace("__CURRENCY_TABLE__", dbTableName);
+        if(!sSqlU.checkTableExist(tableName)) {
+            boolean retv = sSqlU.performStatement(query, true);
+            if(!retv) {
+                System.err.println("Create table:" + tableName + " failed.");
+            }
+        }
+    }
+
     public void getCurrency(String currFile) {
         CSVStackParser csp = new CSVStackParser();
         csp.parseCSVFile(currFile);
@@ -72,7 +107,7 @@ public class CurrencyUtil {
     }
     public void insertStockId(StockInfoList sInfo) {
         String seString;
-        StockSqlUtil sSqlU = new StockSqlUtil();
+        StockSqlUtil sSqlU = StockSqlUtil.getInstence();
         String tableName = sSqlU.dailyExchangeRate;
         String dateStr = sSqlU.convertJavaDateToMySQLStr(new Date());
         for(int i = 0;i < sInfo.stockInfoList.size();i++) {
@@ -107,7 +142,8 @@ public class CurrencyUtil {
         }
     }
     public void updateCurrency(Date d) {
-        StockSqlUtil sqlu = new StockSqlUtil();
+        StockSqlUtil sqlu = StockSqlUtil.getInstence();
+        createCurrencyTable(sqlu.dailyExchangeRate);
         CurrencyUtil currUtil = new CurrencyUtil();
         String storePath = "currency_" + sqlu.convertJavaDateToMySQLStr(d);
         PageAndFile webpage = new PageAndFile();

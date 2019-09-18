@@ -70,7 +70,7 @@ public class CSVStackParser {
         mCsvListener.infoList = new StockInfoList();;
     }
     private boolean insertStockIntoIdTable(String stockid, String stockName, boolean checkDuplicate) {
-        StockSqlUtil sutil = new StockSqlUtil();
+        StockSqlUtil sutil = StockSqlUtil.getInstence();
         String tableName = sutil.getTblStockIdUpdate();
         if(!sutil.checkIdExistInTable(tableName,stockid)) {
             System.out.println("insert " + stockid + " " + stockName);
@@ -172,8 +172,79 @@ public class CSVStackParser {
     public final int TWSE_MI_INDEX_COL_DEALPRIZE = 8;
     public final int TWSE_MI_INDEX_COL_AMOUNT = 2;
 
+    public void insertStockDailyInfo(StockInfoList sInfo, java.util.Date date, String targetTableName) {
+        StockSqlUtil sqlU = StockSqlUtil.getInstence();
+        String seString, senString;
+        float buyinprz, selloutprz, dealprz;
+        int amount;
+        String timeStr = "01:30:00";
+        String przStr, buyinStr, selloutStr, dealStr;
+        for(int i = 0;i < sInfo.stockInfoList.size();i++) {
+            StockInfoList.StockEntry se = sInfo.stockInfoList.get(i);
+            seString = se.stockEntry.get(0);
+            if(DEBUG_PARSE_COMPANY_ONLY && (seString.length() > 4)) {
+                continue;
+            }
+            buyinStr = se.stockEntry.get(TWSE_MI_INDEX_COL_BUYIN).replace(",","");
+            selloutStr = se.stockEntry.get(TWSE_MI_INDEX_COL_SELLOUT).replace(",","");
+            dealStr = se.stockEntry.get(TWSE_MI_INDEX_COL_DEALPRIZE).replace(",","");
+            przStr = seString + " " + buyinStr + " " + selloutStr + " " + dealStr + " " + se.stockEntry.get(TWSE_MI_INDEX_COL_AMOUNT);
+            System.out.println(przStr);
+            if(buyinStr.equals("--") ||buyinStr.equals("-")) {
+                if(dealStr.equals("--") || dealStr.equals("-")) {
+                    if(selloutStr.equals("--") || selloutStr.equals("-")) {
+                        dealStr = buyinStr = selloutStr = "-1.0";
+                    } else {
+                        buyinStr = selloutStr;
+                    }
+                } else {
+                    buyinStr = dealStr;
+                }
+            }
+            if(selloutStr.equals("--") || selloutStr.equals("-")) {
+                if(dealStr.equals("--") || dealStr.equals("-")) {
+                    if(buyinStr.equals("--") || buyinStr.equals("-")) {
+                        dealStr = buyinStr = selloutStr = "-1.0";
+                    } else {
+                        selloutStr = buyinStr;
+                    }
+                } else {
+                    selloutStr = dealStr;
+                }
+            }
+            if(dealStr.equals("--") || dealStr.equals("-")) {
+                if(selloutStr.equals("--") || selloutStr.equals("-")) {
+                    if(buyinStr.equals("--") || buyinStr.equals("-")) {
+                        dealStr = buyinStr = selloutStr = "-1.0";
+                    } else {
+                        dealStr = buyinStr;
+                    }
+                } else {
+                    dealStr = selloutStr;
+                }
+            }
+            przStr = seString + " fixed " + buyinStr + " " + selloutStr + " " + dealStr + " " + se.stockEntry.get(TWSE_MI_INDEX_COL_AMOUNT);
+            System.out.println(przStr);
+
+            buyinprz = Float.parseFloat(buyinStr);
+            selloutprz = Float.parseFloat(selloutStr);
+            dealprz = Float.parseFloat(dealStr);
+
+            amount = Integer.parseInt(se.stockEntry.get(TWSE_MI_INDEX_COL_AMOUNT).replace(",",""));
+            if(!seString.matches("\\d+")) {
+                continue;
+            }
+            if(DEBUG_WRITE_DAILY_DB) {
+                if(targetTableName != null && !targetTableName.equals("")) {
+                    sqlU.insertDailyTable(seString, date, buyinprz, selloutprz, dealprz, 0, amount, false, targetTableName);
+                } else {
+                    sqlU.insertDailyTable(seString, date, buyinprz, selloutprz, dealprz, 0, amount, false);
+                }
+            }
+        }
+    }
     public void insertStockDailyInfo(StockInfoList sInfo, java.util.Date date) {
-        StockSqlUtil sqlU = new StockSqlUtil();
+        StockSqlUtil sqlU = StockSqlUtil.getInstence();
         String seString, senString;
         float buyinprz, selloutprz, dealprz;
         int amount;
@@ -238,14 +309,13 @@ public class CSVStackParser {
         }
     }
 
-    public final int TPEX_INDEX_COL_BUYIN = 11;
-    public final int TPEX_INDEX_COL_SELLOUT = 12;
+    public final int TPEX_INDEX_COL_BUYIN = 10;
+    public final int TPEX_INDEX_COL_SELLOUT = 11;
     public final int TPEX_INDEX_COL_DEALPRIZE = 2;
-    public final int TPEX_INDEX_COL_AMOUNT = 8;
+    public final int TPEX_INDEX_COL_AMOUNT = 7;
 
-
-    public void insertOTCStockDailyInfo(StockInfoList sInfo, java.util.Date date) {
-        StockSqlUtil sqlU = new StockSqlUtil();
+    public void insertOTCStockDailyInfo(StockInfoList sInfo, java.util.Date date, String dailyTargetTableName) {
+        StockSqlUtil sqlU = StockSqlUtil.getInstence();
         String seString, senString;
         float buyinprz, selloutprz, dealprz;
         int amount;
@@ -306,8 +376,80 @@ public class CSVStackParser {
             if(!seString.matches("\\d+")) {
                 continue;
             }
-            if(DEBUG_WRITE_OTC_DAILY_DB) sqlU.insertDailyTable(seString, date, buyinprz, selloutprz, dealprz, 0, amount, false);
+            if(DEBUG_WRITE_OTC_DAILY_DB) {
+                if(dailyTargetTableName != null && !dailyTargetTableName.equals("")) {
+                    sqlU.insertDailyTable(seString, date, buyinprz, selloutprz, dealprz, 0, amount, false, dailyTargetTableName);
+                } else {
+                    sqlU.insertDailyTable(seString, date, buyinprz, selloutprz, dealprz, 0, amount, false);
+                }
+            }
         }
+    }
+    public void insertOTCStockDailyInfo(StockInfoList sInfo, java.util.Date date) {
+        insertOTCStockDailyInfo(sInfo, date, null);
+//        StockSqlUtil sqlU = StockSqlUtil.getInstence();
+//        String seString, senString;
+//        float buyinprz, selloutprz, dealprz;
+//        int amount;
+//        String timeStr = "02:30:00";
+//        String przStr, buyinStr, selloutStr, dealStr;
+//        for(int i = 0;i < sInfo.stockInfoList.size();i++) {
+//            StockInfoList.StockEntry se = sInfo.stockInfoList.get(i);
+//            seString = se.stockEntry.get(0);
+//            if(DEBUG_PARSE_COMPANY_ONLY && (seString.length() > 4)) {
+//                continue;
+//            }
+//            buyinStr = se.stockEntry.get(TPEX_INDEX_COL_BUYIN).replace(",","");
+//            selloutStr = se.stockEntry.get(TPEX_INDEX_COL_SELLOUT).replace(",","");
+//            dealStr = se.stockEntry.get(TPEX_INDEX_COL_DEALPRIZE).replace(",","");
+//            przStr = seString + " " + buyinStr + " " + selloutStr + " " + dealStr + " " + se.stockEntry.get(TPEX_INDEX_COL_AMOUNT);
+//            System.out.println(przStr);
+//            if(buyinStr.contains("--") || buyinStr.equals("-")) {
+//                if(dealStr.contains("--") || dealStr.equals("-")) {
+//                    if(selloutStr.contains("--") || selloutStr.equals("-")) {
+//                        dealStr = buyinStr = selloutStr = "-1.0";
+//                    } else {
+//                        buyinStr = selloutStr;
+//                    }
+//                } else {
+//                    buyinStr = dealStr;
+//                }
+//            }
+//            if(selloutStr.contains("--") || selloutStr.equals("-")) {
+//                if(dealStr.contains("--") || dealStr.equals("-")) {
+//                    if(buyinStr.contains("--") || buyinStr.equals("-")) {
+//                        dealStr = buyinStr = selloutStr = "-1.0";
+//                    } else {
+//                        selloutStr = buyinStr;
+//                    }
+//                } else {
+//                    selloutStr = dealStr;
+//                }
+//            }
+//            if(dealStr.contains("--") || dealStr.equals("-")) {
+//                if(selloutStr.contains("--") || selloutStr.equals("-")) {
+//                    if(buyinStr.contains("--") || buyinStr.equals("-")) {
+//                        dealStr = buyinStr = selloutStr = "-1.0";
+//                    } else {
+//                        dealStr = buyinStr;
+//                    }
+//                } else {
+//                    dealStr = selloutStr;
+//                }
+//            }
+//            przStr = seString + " fixed " + buyinStr + " " + selloutStr + " " + dealStr + " " + se.stockEntry.get(TPEX_INDEX_COL_AMOUNT);
+//            System.out.println(przStr);
+//
+//            buyinprz = Float.parseFloat(buyinStr);
+//            selloutprz = Float.parseFloat(selloutStr);
+//            dealprz = Float.parseFloat(dealStr);
+//
+//            amount = Integer.parseInt(se.stockEntry.get(TPEX_INDEX_COL_AMOUNT).replace(",",""));
+//            if(!seString.matches("\\d+")) {
+//                continue;
+//            }
+//            if(DEBUG_WRITE_OTC_DAILY_DB) sqlU.insertDailyTable(seString, date, buyinprz, selloutprz, dealprz, 0, amount, false);
+//        }
     }
 
     public int parseCSVRow(String csvstr) {

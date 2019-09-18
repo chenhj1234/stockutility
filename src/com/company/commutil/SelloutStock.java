@@ -18,7 +18,7 @@ public class SelloutStock {
         boolean optBuyin = argParser.isArgOn("-buyinlist");
         boolean optBuySell = argParser.isArgOn("-buysell");
         boolean optCheckScore = argParser.isArgOn("-checkscore");
-        StockSqlUtil sSql = new StockSqlUtil();
+        StockSqlUtil sSql = StockSqlUtil.getInstence();
         if(stockid != null) {
             sSql.applyBuyinSelloutStrategy(stockid, optBuySell);
 //            StockSqlUtil.performanceEntry pe = sSql.getPerformanceNoBuyin(stockid, false);

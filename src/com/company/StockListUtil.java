@@ -10,15 +10,16 @@ public class StockListUtil {
     private Statement mStatement = null;
     private ResultSet mResultSet = null;
     private PreparedStatement mPreparedStatement = null;
-    private String serverName = "10.20.70.136";
+    private String serverName = "10.20.70.22";
+//    private String serverName = "192.168.1.90";
     private String mydatabase = "stock_identifier_alpha";
     private String tblStockId = "stockid";
     private String tblStockIdUpdate = "stockid_for_update";
     private String tblBuyinTableAnalysis = "buyin_table_analysis";
     private String url = "jdbc:mysql://" + serverName + "/" + mydatabase + "?serverTimezone=UTC&useUnicode=yes&characterEncoding=UTF-8";
 
-    private String username = "holmas";
-    private String password = "chenhj";
+    private String username = "chenhj";
+    private String password = "holmas0228";
     private String table_stockid = mydatabase + "." + tblStockId;
     private String table_stockid_update = mydatabase + "." + tblStockIdUpdate;
     private String driverName = "com.mysql.cj.jdbc.Driver";
@@ -127,7 +128,7 @@ public class StockListUtil {
         }
     }
     public void getStockListFromBuyinAnalysis() {
-        StockSqlUtil su = new StockSqlUtil();
+        StockSqlUtil su = StockSqlUtil.getInstence();
         String tableName = su.buyinTableAnalysis;
         ResultSet resSet;
         su.initSelectTable();
@@ -145,7 +146,7 @@ public class StockListUtil {
         su.finishSelectQuery();
     }
     public void getStockListFromBuyin(boolean withSellout) {
-        StockSqlUtil su = new StockSqlUtil();
+        StockSqlUtil su = StockSqlUtil.getInstence();
         String tableName = su.buyinTable;
         ResultSet resSet;
         su.initSelectTable();
@@ -210,5 +211,24 @@ public class StockListUtil {
             idEnt.add(stockIdList.get(j));
         }
         return idEnt;
+    }
+    public String getStockNameFromId(String stockId) {
+        String returnName = null;
+        try {
+            String tableName = table_stockid_update;
+            connectToServer();
+            mResultSet = mStatement.executeQuery("select * from " + tableName + " where length(stockid) = 4");
+            while (mResultSet.next()) {
+                String id = mResultSet.getString("stockid");
+                if(id.equals(stockId)) {
+                    returnName = mResultSet.getString("stockname");
+                }
+                if(DEBUG_MSG_VERBOSE) System.out.println("Access id:" + id + " name:" + returnName);
+                stockIdList.add(new StockIdEntry(id, returnName));
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        return returnName;
     }
 }

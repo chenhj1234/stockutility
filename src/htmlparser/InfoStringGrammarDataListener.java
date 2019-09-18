@@ -205,16 +205,20 @@ public class InfoStringGrammarDataListener extends InfoStringGrammarBaseListener
     @Override public void enterTitleRule(InfoStringGrammarParser.TitleRuleContext ctx) {
         String stockName = "";
         String childText;
+        boolean isName = true;
         for(int i = 0;i < ctx.getChildCount();i++) {
             childText =ctx.getChild(i).getText();
+//            System.out.println("childText:" + childText);
             if(childText.equals("(")) {
                 break;
-            } else {
+//                isName = false;
+            } else if(isName){
                 stockName += ctx.getChild(i).getText();
             }
         }
+//        System.out.println("real number:" + ctx.realNumberRule().getText());
         stockInfo.StockName = stockName;
-        stockInfo.StockNumber = ctx.REAL_NUMBER().getText();
+        stockInfo.StockNumber = ctx.realNumberRule().getText();
         if(showInfoData) System.out.println("name:" + stockInfo.StockName + " id:" + stockInfo.StockNumber);
     }
 }

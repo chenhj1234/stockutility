@@ -23,7 +23,7 @@ public class BuyinStock {
         }
     }
     public static void main(String[] args) {
-        StockSqlUtil sqlUtil = new StockSqlUtil();
+        StockSqlUtil sqlUtil = StockSqlUtil.getInstence();
         switch(func) {
             case FUNC_BUYIN_WATCHLIST:
                 sqlUtil.buyinWatchList();

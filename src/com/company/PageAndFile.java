@@ -1,9 +1,15 @@
 package com.company;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -23,18 +29,30 @@ public class PageAndFile {
     BufferedReader openURLForRead(String url) {
         return openURLForRead(url, "Big5-HKSCS");
     }
+    TrustManager[] trustAllCerts = new TrustManager[]{new X509TrustManager(){
+        public X509Certificate[] getAcceptedIssuers(){return null;}
+        public void checkClientTrusted(X509Certificate[] certs, String authType){}
+        public void checkServerTrusted(X509Certificate[] certs, String authType){}
+    }};
 
     BufferedReader openURLForRead(String url, String encode) {
         try {
             URL siteurl = new URL(url);
-            yc = (HttpURLConnection)siteurl.openConnection();
+            SSLContext sc = SSLContext.getInstance("TLS");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            if(url.startsWith("https")) {
+                yc = ((HttpsURLConnection) siteurl.openConnection());
+            } else {
+                yc = ((HttpURLConnection) siteurl.openConnection());
+            }
             yc.setUseCaches(false);
             yc.setAllowUserInteraction(false);
             yc.setRequestProperty("User-Agent","Mozilla/5.0");
             yc.connect();
             int code = yc.getResponseCode();
             System.out.println("Response code:" + code);
-            if(code >= 300) {
+            if(code >= 390) {
                 yc.disconnect();
                 return null;
             }
@@ -189,8 +207,11 @@ public class PageAndFile {
         }
         return null;
     }
-    final String twseIndexPageURL = "http://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=__DATE__&type=ALL";
-    final String tpexIndexPageURL = "http://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&o=csv&d=__DATE__&s=0,asc,0";
+
+//    final String twseIndexPageURL =     "http://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=20190723&type=MS";
+    final String twseIndexPageURL = "https://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=__DATE__&type=ALL";
+    final String tpexIndexPageURLOld = "http://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&o=csv&d=__DATE__&s=0,asc,0";
+    final String tpexIndexPageURL = "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php?l=zh-tw&o=csv&d=__DATE__&se=EW&s=0,asc,0";
 
     public String getTWSEPageAndSave(Date date) {
         // We will to get stock list info page from here http://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=20190322&type=ALL
@@ -200,6 +221,7 @@ public class PageAndFile {
         String savefile = "MI_INDEX_" + todaystr +".csv";
         twseIndexPage = twseIndexPage.replace("__DATE__", todaystr);
         PageAndFile pf = new PageAndFile();
+        System.out.println("twseIndexPage:" + twseIndexPage);
         savefile = pf.getPageAndSave(twseIndexPage,savefile);
         System.out.println("MI Index save to " + savefile);
         return savefile;

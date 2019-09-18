@@ -26,7 +26,7 @@ public class AddStockToWatch {
     }
 
     public static void main(String[] args) {
-        StockSqlUtil sqlUtil = new StockSqlUtil();
+        StockSqlUtil sqlUtil = StockSqlUtil.getInstence();
         StockListUtil listUtil = new StockListUtil();
         ArrayList<StockListUtil.StockIdEntry> idEnt;
         processArgs(args);
