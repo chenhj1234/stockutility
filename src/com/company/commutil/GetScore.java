@@ -4,6 +4,7 @@ import com.company.GetArgs;
 import com.company.StockListUtil;
 import sqlutil.StockSqlUtil;
 
+import java.sql.ResultSet;
 import java.util.Date;
 
 public class GetScore {
@@ -128,25 +129,123 @@ public class GetScore {
         //sqlU.analysisShareHistory(stockid);
 
     }
-
-    private static void getPriseHistScore(String stockid, StockSqlUtil sqlU) {
+    private static void createPriseHistTable(StockSqlUtil sqlU) {
+        String tableName = sqlU.kPriseHistScoreTableName;
+        sqlU.initCreateTableQuery();
+        sqlU.addCreateTableColEntry("stockid", "varchar", "utf8", true, 20);
+        sqlU.addCreateTableColEntry("date", "date", null, true, 0);
+        sqlU.addCreateTableColEntry("duration", "int", null, true, 0);
+        sqlU.addCreateTableColEntry("earn_10_pa", "boolean", null, true, 0);
+        sqlU.addCreateTableColEntry("earn_20_pa", "boolean", null, true, 0);
+        sqlU.addCreateTableColEntry("earn_30_pa", "boolean", null, true, 0);
+        sqlU.addCreateTableColEntry("earn_40_pa", "boolean", null, true, 0);
+        sqlU.addCreateTableColEntry("earn_50_pa", "boolean", null, true, 0);
+        sqlU.addCreateTableColEntry("max_earning", "float", null, true, 0);
+        sqlU.addCreateTableColEntry("total_earning", "float", null, true, 0);
+        sqlU.addCreateTableColEntry("total_loss", "float", null, true, 0);
+        sqlU.performCreateTable(tableName);
+    }
+    private static void getPriseHistScore(String stockid, StockSqlUtil sqlU, Date buyDate) {
         String tableName = sqlU.dailyInfoHistoryTable;
+        float buyPrise = sqlU.getPrise(stockid, buyDate);
+        if(buyPrise <= 0) return;
+        float tracePrise;
+        float maxPrise = 0;
+        float totalPositiveEarning = 0;
+        float totalNegativeEarning = 0;
+        int recordCount = 0;
+        int positiveCount = 0;
+        int negativeCount = 0;
+        boolean havePositiveReturn = false;
+        boolean have10Pa = false;
+        boolean have20Pa = false;
+        boolean have30Pa = false;
+        boolean have40Pa = false;
+        boolean have50Pa = false;
         sqlU.initSelectTable();
         sqlU.addSelCol("dealprise");
+        sqlU.addSelParmValue("stockid", stockid);
+        sqlU.addSelOrder("date", false);
+        ResultSet rSet = sqlU.performSelectTable(tableName);
+        try {
+            while (rSet.next()) {
+                tracePrise = rSet.getFloat("dealprise");
+                if(tracePrise > buyPrise) {
+                    havePositiveReturn = true;
+                    positiveCount ++;
+                    if((tracePrise - buyPrise)/buyPrise > 0.1) {
+                        have10Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.2) {
+                        have20Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.3) {
+                        have30Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.4) {
+                        have40Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.5) {
+                        have50Pa = true;
+                    }
+                    if(maxPrise < tracePrise) maxPrise = tracePrise;
+                    totalPositiveEarning += (tracePrise - buyPrise);
+                } else if(tracePrise < buyPrise) {
+                    negativeCount ++;
+                    totalNegativeEarning += (buyPrise - tracePrise);
+                }
+                recordCount ++;
+                if(recordCount == 30 || recordCount == 90 || recordCount == 180 || recordCount == 270 || recordCount == 360) {
+                    System.out.println("id:" + stockid + " " + recordCount + " days 10%:" + have10Pa + " 20%:" + have20Pa + " 30%:" + have30Pa + " 40%:" + have40Pa  + " 50%:" + have50Pa +
+                    " max earning:" + (maxPrise - buyPrise)/buyPrise + " totEarn:" + totalPositiveEarning/positiveCount + " totLoss: -" + totalNegativeEarning/negativeCount);
+                    sqlU.initInsertTable();
+                    sqlU.insertValue("stockid", stockid);
+                    sqlU.insertValue("date", buyDate);
+                    sqlU.insertValue("duration", recordCount/30);
+                    sqlU.insertValue("earn_10_pa", have10Pa);
+                    sqlU.insertValue("earn_20_pa", have20Pa);
+                    sqlU.insertValue("earn_30_pa", have30Pa);
+                    sqlU.insertValue("earn_40_pa", have40Pa);
+                    sqlU.insertValue("earn_50_pa", have50Pa);
+                    sqlU.insertValue("max_earning", (maxPrise - buyPrise)/buyPrise);
+                    if(positiveCount > 0) {
+                        sqlU.insertValue("total_earning", totalPositiveEarning/positiveCount);
+                    } else {
+                        sqlU.insertValue("total_earning", 0);
+                    }
+                    if(negativeCount > 0) {
+                        sqlU.insertValue("total_loss", totalNegativeEarning/negativeCount);
+                    } else {
+                        sqlU.insertValue("total_loss", 0);
+                    }
+                    tableName = sqlU.kPriseHistScoreTableName;
+                    sqlU.insertIntoTable(tableName);
+                }
+                if(recordCount > 360) break;
+            }
+            sqlU.finishSelectQuery();
+        } catch ( Exception e) {
+            e.printStackTrace();
+        }
+
     }
     public static void main(String[] args) {
         garg.addOption("-s" , true);
         garg.addOption("--divhist" , false);
+        garg.addOption("--prisehist" , false);
         garg.addOption("--date" , true);
         garg.processArgs(args);
         StockSqlUtil sqlU = StockSqlUtil.getInstence();
-        Date monitorDate = null;
+        Date monitorDate = new Date();
         if(garg.isArgOn("--date")) {
             String dateStr = garg.findParm("--date");
             monitorDate = sqlU.convertStrToJavaDate(dateStr);
         }
         if(garg.isArgOn("--divhist")) {
             sqlU.createHistDividendScoreTable(sqlU.kHistDividendScoreTableName);
+        }
+        if(garg.isArgOn("--prisehist")) {
+            sqlU.createPriseHistTable();
         }
         if(!garg.isArgOn("-s")) {
             StockListUtil su = new StockListUtil();
@@ -156,6 +255,8 @@ public class GetScore {
                 se = su.stockIdList.get(i);
                 if(garg.isArgOn("--divhist")) {
                     sqlU.getOneHistDivScore(se.id, se.name, monitorDate);
+                } else if( garg.isArgOn("--prisehist")){
+                    sqlU.getPriseHistScore(se.id, monitorDate);
                 } else {
                     getOneStockScore(se.id);
                 }
@@ -175,6 +276,8 @@ public class GetScore {
 
             if(garg.isArgOn("--divhist")) {
                 sqlU.getOneHistDivScore(stockid, stockName,monitorDate);
+            } else if( garg.isArgOn("--prisehist")){
+                sqlU.getPriseHistScore(stockid, monitorDate);
             } else {
                 getOneStockScore(stockid);
             }

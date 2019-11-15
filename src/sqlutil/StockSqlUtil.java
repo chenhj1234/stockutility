@@ -49,6 +49,7 @@ public class StockSqlUtil {
     public final String buyinPerformanceAccu = "buyin_performance_accu";
     public final String strategyTable = "buyin_strategy";
     public final String kHistDividendScoreTableName = "hist_div_score";
+    public final String kPriseHistScoreTableName = "prise_hist_score";
     // With regular daily buyin, the stockid and date will be checked, if matched, not buyin
     public static final int BUYIN_REGULAR_DAILY = 0;
     // With regular daily buyin, the stockid will be checked, if matched, buyin, add amount and count avarage prise
@@ -2366,17 +2367,65 @@ public class StockSqlUtil {
         return true;
 
     }
-    private final String[] dbHistDividendScoreColName = new String[] {
-            "stockid",
-            "stockname",
-            "date",
-            "positive_dividend_score",
-            "return_ratio_score",
-            "three_year_trend_score",
-            "simulation_score",
-            "basic_info_score",
-            "weighted_score"
-    };
+    class CreateTableColEntry {
+        public String colName;
+        public String colType;
+        public boolean notNull;
+        public String charSet;
+        public int strLength;
+        public CreateTableColEntry(String cn, String ct, String cs, boolean nn, int sl) {
+            colName = cn;
+            colType = ct;
+            charSet = cs;
+            notNull = nn;
+            strLength = sl;
+        }
+    }
+    private String createTableQuery = "create table ___TABLE_NAME___ ( ___TABLE_CONTENT___)";
+    ArrayList<CreateTableColEntry> colList = null;
+    public void initCreateTableQuery() {
+        colList = new ArrayList<>();
+    }
+    public void addCreateTableColEntry(String cn, String ct, String cs, boolean nn, int sl) {
+        CreateTableColEntry tCol = new CreateTableColEntry(cn, ct, cs, nn, sl);
+        colList.add(tCol);
+    }
+    private String getCreateTableQuery(String tableName) {
+        String colStr, contentStr = "", queryStr = createTableQuery;
+
+        if(colList.size() == 0) {
+            return null;
+        }
+        for(int i = 0;i < colList.size();i++) {
+            CreateTableColEntry colEnt = colList.get(i);
+            if(colEnt.colType.equalsIgnoreCase("varchar")) {
+                colStr = colEnt.colName + " " + colEnt.colType + "(" + colEnt.strLength + ")";
+                if(colEnt.charSet != null && colEnt.charSet.equalsIgnoreCase("utf8"))
+                    colStr = colStr + " character set utf8 collate utf8_unicode_ci ";
+            } else {
+                colStr = colEnt.colName + " " + colEnt.colType;
+            }
+            if(colEnt.notNull)
+                colStr = colStr + " not null";
+            contentStr = contentStr + colStr;
+            if(i < (colList.size() - 1)) {
+                contentStr = contentStr + ",";
+            }
+        }
+        queryStr = queryStr.replace("___TABLE_NAME___",tableName);
+        queryStr = queryStr.replace("___TABLE_CONTENT___",contentStr);
+        return queryStr;
+    }
+    public void performCreateTable(String tableName) {
+        String query = getCreateTableQuery(tableName);
+        if(!checkTableExist(tableName)) {
+            boolean retv = performStatement(query, true);
+            if(!retv) {
+                System.err.println("Create table:" + tableName + " failed.");
+            }
+        }
+    }
+
     private final int kHistDividendScoreColIndex_StockId = 0;
     private final int kHistDividendScoreColIndex_StockName = kHistDividendScoreColIndex_StockId + 1;
     private final int kHistDividendScoreColIndex_Date = kHistDividendScoreColIndex_StockName + 1;
@@ -2386,6 +2435,24 @@ public class StockSqlUtil {
     private final int kHistDividendScoreColIndex_SimulationScore = kHistDividendScoreColIndex_ThreeYearTrendScore + 1;
     private final int kHistDividendScoreColIndex_BasicInfoScore = kHistDividendScoreColIndex_SimulationScore + 1;
     private final int kHistDividendScoreColIndex_WeightedScore = kHistDividendScoreColIndex_BasicInfoScore + 1;
+    private final int kHistDividendScoreColIndex_NonLockupScore = kHistDividendScoreColIndex_WeightedScore + 1;
+    private final int kHistDividendScoreColIndex_WeightedNonLockupScore = kHistDividendScoreColIndex_NonLockupScore + 1;
+    private final int kHistDividendScoreColIndex_Prize = kHistDividendScoreColIndex_WeightedNonLockupScore + 1;
+    private final String[] dbHistDividendScoreColName = new String[] {
+            "stockid",
+            "stockname",
+            "date",
+            "positive_dividend_score",
+            "return_ratio_score",
+            "three_year_trend_score",
+            "simulation_score",
+            "basic_info_score",
+            "weighted_score",
+            "non_lockup_score",
+            "weighted_score_non_lockup",
+            "prize"
+    };
+
     private String mCreateHistDividendTableQuery = "CREATE TABLE __HIST_DIVIDEND_SCORE_TABLE__ ("
             + dbHistDividendScoreColName[kHistDividendScoreColIndex_StockId] + " VARCHAR(20) NOT NULL,"
             + dbHistDividendScoreColName[kHistDividendScoreColIndex_StockName] + " VARCHAR(20) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,"
@@ -2395,17 +2462,35 @@ public class StockSqlUtil {
             + dbHistDividendScoreColName[kHistDividendScoreColIndex_ThreeYearTrendScore] + " FLOAT NOT NULL,"
             + dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore] + " FLOAT NOT NULL,"
             + dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore] + " FLOAT NOT NULL,"
-            + dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore] + " FLOAT NOT NULL)";
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_NonLockupScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedNonLockupScore] + " FLOAT NOT NULL,"
+            + dbHistDividendScoreColName[kHistDividendScoreColIndex_Prize] + " FLOAT NOT NULL)";
 
     public void createHistDividendScoreTable(String tableName) {
-        String dbTableName = getTabelNameWithDB(tableName);
-        String query = mCreateHistDividendTableQuery.replace("__HIST_DIVIDEND_SCORE_TABLE__", dbTableName);
-        if(!checkTableExist(tableName)) {
-            boolean retv = performStatement(query, true);
-            if(!retv) {
-                System.err.println("Create table:" + tableName + " failed.");
-            }
-        }
+//        String dbTableName = getTabelNameWithDB(tableName);
+//        String query = mCreateHistDividendTableQuery.replace("__HIST_DIVIDEND_SCORE_TABLE__", dbTableName);
+//        if(!checkTableExist(tableName)) {
+//            boolean retv = performStatement(query, true);
+//            if(!retv) {
+//                System.err.println("Create table:" + tableName + " failed.");
+//            }
+//        }
+//        String tableName = kPriseHistScoreTableName;
+        initCreateTableQuery();
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockId], "varchar", "utf8", true, 20);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockName], "varchar", "utf8", true, 20);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_Date], "date", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_PositiveDividendScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_ReturnRatioScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_ThreeYearTrendScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_NonLockupScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedNonLockupScore], "float", null, true, 0);
+        addCreateTableColEntry(dbHistDividendScoreColName[kHistDividendScoreColIndex_Prize], "float", null, true, 0);
+        performCreateTable(tableName);
     }
 
     private static class HistDivScore {
@@ -2415,6 +2500,9 @@ public class StockSqlUtil {
         public float simulationScore;
         public float basicInfoScore;
         public float weightedScore;
+        public float nonLockupScore;
+        public float weightedNonLockupScore;
+        public float prizeScore;
     };
     public void insertHistDividendScoreRecord(String tableName, String stockid, String stockName, Date date, HistDivScore score, boolean doUpdate) {
 //        if(checkIdExistInTable(tableName, stockid, convertJavaDateToMySQLStr(date))) {
@@ -2434,7 +2522,10 @@ public class StockSqlUtil {
                 addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore], score.simulationScore);
                 addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore], score.basicInfoScore);
                 addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore], score.weightedScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_NonLockupScore], score.nonLockupScore);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedNonLockupScore], score.weightedNonLockupScore);
                 addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_Date], date);
+                addUpdateCol(dbHistDividendScoreColName[kHistDividendScoreColIndex_Prize], score.prizeScore);
                 addUpdateParam(dbHistDividendScoreColName[kHistDividendScoreColIndex_StockId], stockid);
                 performUpdateTable(tableName);
             }
@@ -2454,6 +2545,9 @@ public class StockSqlUtil {
             insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_SimulationScore],score.simulationScore);
             insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_BasicInfoScore],score.basicInfoScore);
             insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedScore],score.weightedScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_NonLockupScore], score.nonLockupScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_WeightedNonLockupScore], score.weightedNonLockupScore);
+            insertValue(dbHistDividendScoreColName[kHistDividendScoreColIndex_Prize], score.prizeScore);
             insertIntoTable(tableName);
         }
     }
@@ -2555,7 +2649,314 @@ public class StockSqlUtil {
             score.simulationScore = 0;
         }
         score.basicInfoScore = getScore(pe, true);
+        // For prize less than 7 NTD, we consider it as dangerous, and it's return ratio may be greatly error
+        score.prizeScore = prz;
         score.weightedScore = score.rrScore + score.simulationScore + score.threeYearTrendScore + score.positiveScore + (score.basicInfoScore / 10) + basicInfoOverheadFunc(score.basicInfoScore);
+        score.nonLockupScore = getPriseHistScore(stockid, date);
+        score.weightedNonLockupScore = score.weightedScore + score.nonLockupScore;
         insertHistDividendScoreRecord(kHistDividendScoreTableName, stockid, stockName, date, score, true);
     }
+    class PriseHistInfo {
+        public String stockid;
+        public Date date;
+        public int duration;
+        public boolean earn10pa;
+        public boolean earn20pa;
+        public boolean earn30pa;
+        public boolean earn40pa;
+        public boolean earn50pa;
+        public float max_earning;
+        public float total_earning;
+        public float total_loss;
+        public float score;
+    }
+    public void createPriseHistTable() {
+        String tableName = kPriseHistScoreTableName;
+        initCreateTableQuery();
+        addCreateTableColEntry("stockid", "varchar", "utf8", true, 20);
+        addCreateTableColEntry("date", "date", null, true, 0);
+        addCreateTableColEntry("duration", "int", null, true, 0);
+        addCreateTableColEntry("earn_10_pa", "boolean", null, true, 0);
+        addCreateTableColEntry("earn_20_pa", "boolean", null, true, 0);
+        addCreateTableColEntry("earn_30_pa", "boolean", null, true, 0);
+        addCreateTableColEntry("earn_40_pa", "boolean", null, true, 0);
+        addCreateTableColEntry("earn_50_pa", "boolean", null, true, 0);
+        addCreateTableColEntry("max_earning", "float", null, true, 0);
+        addCreateTableColEntry("total_earning", "float", null, true, 0);
+        addCreateTableColEntry("total_loss", "float", null, true, 0);
+        addCreateTableColEntry("score", "float", null, true, 0);
+        performCreateTable(tableName);
+    }
+
+    ArrayList<PriseHistInfo> priseHistInfoList = new ArrayList<>();
+
+    class AvoidLockUpScore {
+        public int total_count = 0;
+        final int kLockupBoundary2Pa = 0;
+        final int kLockupBoundary10Pa = 1;
+        final int kLockupBoundary30Pa = 2;
+        final int kLockupBoundaryCount = 3;
+        public int[] max_duration = {0, 0, 0};
+        public int[] current_duration = {0, 0, 0};
+        public int[] avg_dur_aquare_count = {0, 0, 0};
+        public int[] total_dur_count = {0, 0, 0};
+        public int[] latest_duration = {0, 0, 0};
+        public float[] target_boundary = {0.02f, 0.1f, 0.3f};
+        public float[] maxDurScore = {0.0f, 0.0f, 0.0f};
+        public float[] avgDurScore = {0.0f, 0.0f, 0.0f};
+        public float[] latDurScore = {0.0f, 0.0f, 0.0f};
+        boolean[] lastRecordAdded = {false, false, false};
+        public float buyPrise = 0;
+        float getRR(float monitorPrise) {
+            return (monitorPrise - buyPrise)/buyPrise;
+        }
+        public void addMonitorMoundryTarget(int target, float mPrz) {
+            current_duration[target] ++;
+            if(max_duration[target] < current_duration[target]) 
+              max_duration[target] = current_duration[target];
+            else {
+                if(latest_duration[target] == 0) {
+                    latest_duration[target] = max_duration[target];
+                }
+            }
+            // Assume : previous rr is less than target_boundary, now we get another rr. In case
+            // 1. rr still less than target_boundary, we just increase the duration (in days)
+            // 2. rr greater than target_boundary, we add "one duration period" and reset the current duration
+
+            // Assume : previous rr is greater than target_boundary, now we get another rr. In such case, current_duration was reset
+            // 1. rr still less than target_boundary, we just increase the duration (in days)
+            // 2. rr greater than target_boundary, since duration was reset, it will not add to duration period
+            if(getRR(mPrz) > target_boundary[target]) {
+//                avg_dur_aquare_count[target] += current_duration[target] * current_duration[target];
+                // To avoid prise climbing up
+                if(current_duration[target] > 2) {
+                    total_dur_count[target] ++;
+                    avg_dur_aquare_count[target] += current_duration[target];
+                }
+                current_duration[target] = 0;
+//                lastRecordAdded[target] = true;
+            } else {
+//                lastRecordAdded[target] = false;
+            }
+        }
+        public float getLockUpBoundaryTargetScore(int target) {
+            if(latest_duration[target] == 0) latest_duration[target] = max_duration[target];
+//            if(!lastRecordAdded[target]) {
+            if(current_duration[target] != 0) {
+                if(current_duration[target] > 2) {
+                    total_dur_count[target] ++;
+                    avg_dur_aquare_count[target] += current_duration[target];
+                }
+                current_duration[target] = 0;
+            }
+            maxDurScore[target] = (10.0f/(float)max_duration[target]);
+            avgDurScore[target] = avg_dur_aquare_count[target] == 0 ? 0 : ((float)total_dur_count[target]/(float)avg_dur_aquare_count[target]);
+            latDurScore[target] = (10.0f/(float)latest_duration[target]);
+            System.out.println("Target " + target +
+                    " Max duration:" + max_duration[target] +
+                    " Latest duration:" + latest_duration[target] +
+                    " average duration:" + (total_dur_count[target] == 0 ? 0:(avg_dur_aquare_count[target]/total_dur_count[target])) +
+                    " Total dur count:" + total_dur_count[target]);
+            System.out.println("maxDurScore:" + maxDurScore[target] + " latestDurScore:" + latDurScore[target] + " avgDurScore:" + avgDurScore[target]);
+            float score = maxDurScore[target]*0.2f + latDurScore[target]*0.0f + avgDurScore[target]*0.8f;
+            return maxDurScore[target]*0.2f + latDurScore[target]*0.0f + avgDurScore[target]*0.8f;
+        }
+        public void addMonitorRecord(float monitorPrise) {
+//            total_count ++;
+            addMonitorMoundryTarget(kLockupBoundary2Pa, monitorPrise);
+            addMonitorMoundryTarget(kLockupBoundary10Pa, monitorPrise);
+            addMonitorMoundryTarget(kLockupBoundary30Pa, monitorPrise);
+//            current_30pa_duration ++;
+//            current_10pa_duration ++;
+//            if(max_10pa_duration < current_10pa_duration) max_10pa_duration = current_10pa_duration;
+//            if(getRR(monitorPrise) > 0.1) {
+//                total_10pa_dur_count ++;
+//                current_10pa_duration = 0;
+//            }
+//            if(max_30pa_duration < current_30pa_duration) max_30pa_duration = current_30pa_duration;
+//            if(getRR(monitorPrise) > 0.3) {
+//                total_30pa_dur_count ++;
+//                current_30pa_duration = 0;
+//            }
+        }
+        public float getLockUpScore() {
+            float totalScore = 0;
+            totalScore += getLockUpBoundaryTargetScore(kLockupBoundary2Pa) * 0.35f;
+            totalScore += getLockUpBoundaryTargetScore(kLockupBoundary10Pa) * 0.55f;
+            totalScore += getLockUpBoundaryTargetScore(kLockupBoundary30Pa) * 0.1f;
+            System.out.println("Total score:" + totalScore);
+//            float maxDur10Score = (10.0f/(float)max_10pa_duration);
+//            float avgDur10Score = ((float)total_10pa_dur_count/(float)total_count);
+//            float maxDur30Score = (10.0f/(float)max_30pa_duration);
+//            float avgDur30Score = ((float)total_30pa_dur_count/(float)total_count);
+//            System.out.println("Max 10% duration:" + max_10pa_duration + " average 10% duration:" + (total_10pa_dur_count == 0 ? 0:(total_count/total_10pa_dur_count)));
+//            System.out.println("Max 30% duration:" + max_30pa_duration + " average 30% duration:" + (total_30pa_dur_count == 0 ? 0:(total_count/total_30pa_dur_count)));
+//            System.out.println("maxDur10Score:" + maxDur10Score + " avgDur10Score:" + avgDur10Score);
+//            System.out.println("maxDur30Score:" + maxDur30Score + " avgDur30Score:" + avgDur30Score);
+            return totalScore;
+        }
+    }
+    public float getPriseHistScore(String stockid, Date buyDate) {
+        String tableName = dailyInfoHistoryTable;
+        float buyPrise = getPrise(stockid, buyDate);
+        if(buyPrise <= 0) return 0;
+        float tracePrise;
+        float maxPrise = 0;
+        float totalPositiveEarning = 0;
+        float totalNegativeEarning = 0;
+        int recordCount = 0;
+        int positiveCount = 0;
+        int negativeCount = 0;
+
+        int max_30pa_duration = 0, current_30pa_duration = 0, total_30pa_dur_count = 0, total_count = 0;
+        int max_10pa_duration = 0, current_10pa_duration = 0, total_10pa_dur_count = 0;
+        boolean have10Pa = false;
+        boolean have20Pa = false;
+        boolean have30Pa = false;
+        boolean have40Pa = false;
+        boolean have50Pa = false;
+        float lockupScroe;
+        AvoidLockUpScore lockUpScore = new AvoidLockUpScore();
+        initSelectTable();
+        addSelCol("dealprise");
+        addSelParmValue("stockid", stockid);
+        addSelOrder("date", false);
+        ResultSet rSet = performSelectTable(tableName);
+        priseHistInfoList.clear();
+        lockUpScore.buyPrise = buyPrise;
+        try {
+            PriseHistInfo pInfo;
+            while (rSet.next()) {
+                tracePrise = rSet.getFloat("dealprise");
+                lockUpScore.addMonitorRecord(tracePrise);
+                total_count ++;
+                current_30pa_duration ++;
+                if(tracePrise > buyPrise) {
+                    positiveCount ++;
+                    if((tracePrise - buyPrise)/buyPrise > 0.1) {
+                        have10Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.2) {
+                        have20Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.3) {
+                        have30Pa = true;
+                        if(current_30pa_duration > max_30pa_duration) max_30pa_duration = current_30pa_duration;
+                        total_30pa_dur_count ++;
+                        current_30pa_duration = 0;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.4) {
+                        have40Pa = true;
+                    }
+                    if((tracePrise - buyPrise)/buyPrise > 0.5) {
+                        have50Pa = true;
+                    }
+                    if(maxPrise < tracePrise) maxPrise = tracePrise;
+                    totalPositiveEarning += (tracePrise - buyPrise);
+                } else if(tracePrise < buyPrise) {
+                    negativeCount ++;
+                    totalNegativeEarning += (buyPrise - tracePrise);
+                }
+                recordCount ++;
+                if(recordCount == 30 || recordCount == 90 || recordCount == 180 || recordCount == 270 || (recordCount % 360) == 0) {
+                    System.out.println("id:" + stockid + " " + recordCount + " days 10%:" + have10Pa + " 20%:" + have20Pa + " 30%:" + have30Pa + " 40%:" + have40Pa  + " 50%:" + have50Pa +
+                            " max earning:" + (maxPrise - buyPrise)/buyPrise + " totEarn:" + totalPositiveEarning/(positiveCount * buyPrise) + " totLoss: -" + totalNegativeEarning/(negativeCount*buyPrise));
+                    pInfo = new PriseHistInfo();
+                    pInfo.stockid = stockid;
+                    pInfo.date = buyDate;
+                    pInfo.duration = recordCount / 30;
+                    pInfo.earn10pa = have10Pa;
+                    pInfo.earn20pa = have20Pa;
+                    pInfo.earn30pa = have30Pa;
+                    pInfo.earn40pa = have40Pa;
+                    pInfo.earn50pa = have50Pa;
+                    pInfo.max_earning = (maxPrise - buyPrise)/buyPrise;
+                    if(positiveCount > 0) {
+                        pInfo.total_earning = totalPositiveEarning/positiveCount;
+                    } else {
+                        pInfo.total_earning = 0;
+                    }
+                    if(negativeCount > 0) {
+                        pInfo.total_loss = totalNegativeEarning/negativeCount;
+                    } else {
+                        pInfo.total_loss = 0;
+                    }
+                    priseHistInfoList.add(pInfo);
+                    pInfo.score = 0;
+                    if(recordCount == 180) {
+//                        if(have50Pa) pInfo.score = -0.1f;
+                        if(have30Pa) pInfo.score = 0.1f;
+                        if(!have10Pa) pInfo.score = 0.1f;
+                    }
+//                    sqlU.initInsertTable();
+//                    sqlU.insertValue("stockid", stockid);
+//                    sqlU.insertValue("date", buyDate);
+//                    sqlU.insertValue("duration", recordCount/30);
+//                    sqlU.insertValue("earn_10_pa", have10Pa);
+//                    sqlU.insertValue("earn_20_pa", have20Pa);
+//                    sqlU.insertValue("earn_30_pa", have30Pa);
+//                    sqlU.insertValue("earn_40_pa", have40Pa);
+//                    sqlU.insertValue("earn_50_pa", have50Pa);
+//                    sqlU.insertValue("max_earning", (maxPrise - buyPrise)/buyPrise);
+//                    if(positiveCount > 0) {
+//                        sqlU.insertValue("total_earning", totalPositiveEarning/positiveCount);
+//                    } else {
+//                        sqlU.insertValue("total_earning", 0);
+//                    }
+//                    if(negativeCount > 0) {
+//                        sqlU.insertValue("total_loss", totalNegativeEarning/negativeCount);
+//                    } else {
+//                        sqlU.insertValue("total_loss", 0);
+//                    }
+//                    tableName = sqlU.kPriseHistScoreTableName;
+//                    sqlU.insertIntoTable(tableName);
+                }
+//                if(recordCount > 360) break;
+            }
+            finishSelectQuery();
+//            System.out.println("Max 30% duration:" + max_30pa_duration + " average 30% duration:" + (total_30pa_dur_count == 0 ? 0:(total_count/total_30pa_dur_count)));
+            lockupScroe = lockUpScore.getLockUpScore();
+            tableName = kPriseHistScoreTableName;
+            for(int i = 0;i < priseHistInfoList.size(); i++) {
+                pInfo = priseHistInfoList.get(i);
+                if(checkIdExistInTable(tableName, pInfo.stockid)) {
+                    initUpdateTable();
+                    addUpdateCol("date", pInfo.date);
+                    addUpdateCol("duration", pInfo.duration);
+                    addUpdateCol("earn_10_pa", pInfo.earn10pa);
+                    addUpdateCol("earn_20_pa", pInfo.earn20pa);
+                    addUpdateCol("earn_30_pa", pInfo.earn30pa);
+                    addUpdateCol("earn_40_pa", pInfo.earn40pa);
+                    addUpdateCol("earn_50_pa", pInfo.earn50pa);
+                    addUpdateCol("max_earning", pInfo.max_earning);
+                    addUpdateCol("total_earning", pInfo.total_earning);
+                    addUpdateCol("total_loss", pInfo.total_loss);
+                    addUpdateCol("score", 0);
+                    performUpdateTable(tableName);
+
+                } else {
+                    initInsertTable();
+                    insertValue("stockid", pInfo.stockid);
+                    insertValue("date", pInfo.date);
+                    insertValue("duration", pInfo.duration);
+                    insertValue("earn_10_pa", pInfo.earn10pa);
+                    insertValue("earn_20_pa", pInfo.earn20pa);
+                    insertValue("earn_30_pa", pInfo.earn30pa);
+                    insertValue("earn_40_pa", pInfo.earn40pa);
+                    insertValue("earn_50_pa", pInfo.earn50pa);
+                    insertValue("max_earning", pInfo.max_earning);
+                    insertValue("total_earning", pInfo.total_earning);
+                    insertValue("total_loss", pInfo.total_loss);
+                    insertValue("score", 0);
+                    insertIntoTable(tableName);
+                }
+            }
+            System.out.println("score log:" + Math.log10(lockupScroe));
+            return (float)(Math.log10(lockupScroe)/10);
+        } catch ( Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
 }
