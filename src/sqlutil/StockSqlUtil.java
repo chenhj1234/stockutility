@@ -21,7 +21,7 @@ public class StockSqlUtil {
     private Statement mStatement = null;
     private ResultSet mResultSet = null;
     private PreparedStatement mPreparedStatement = null;
-    private String serverName = "10.20.70.22";
+    private String serverName = "10.20.70.40";
 //    private String serverName = "192.168.1.90";
     private String mydatabase = "stock_identifier_alpha";
     // Table for stock id and name matching list
