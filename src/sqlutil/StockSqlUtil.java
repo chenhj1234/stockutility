@@ -21,7 +21,7 @@ public class StockSqlUtil {
     private Statement mStatement = null;
     private ResultSet mResultSet = null;
     private PreparedStatement mPreparedStatement = null;
-    private String serverName = "10.20.70.40";
+    private String serverName = "10.20.71.108";
 //    private String serverName = "192.168.1.90";
     private String mydatabase = "stock_identifier_alpha";
     // Table for stock id and name matching list
@@ -537,6 +537,25 @@ public class StockSqlUtil {
         return retval;
     }
 
+    public boolean checkColumnExist(String tableName, String[] colname, String[] colval) {
+        boolean retval = false;
+        int ind;
+        try {
+            initSelectTable();
+            for(ind = 0; ind < colname.length; ind++) {
+                addSelParmValue(colname[ind], colval[ind]);
+            }
+            performSelectTable(tableName);
+            if(mResultSet.next()) {
+                retval = true;
+            }
+            finishSelectQuery();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return retval;
+    }
+
     public boolean checkIdExistInTable(String tableName, String stockid, String colName, String colStr) {
         String checkQuery;
         checkQuery = "select * from " + tableName +
@@ -653,6 +672,24 @@ public class StockSqlUtil {
         c.setTime(date);
         int yy = c.get(Calendar.YEAR);
         return yy;
+    }
+
+    public Date getDateOfYesterday(Date todayDate) {
+        final Calendar cal = Calendar.getInstance();
+        cal.setTime(todayDate);
+        cal.add(Calendar.DATE, -1);
+        return cal.getTime();
+    }
+
+    public Date getDateOfYesterday() {
+        return getDateOfYesterday(new Date());
+    }
+
+    public Date getDateOfTomorrow(Date todayDate) {
+        final Calendar cal = Calendar.getInstance();
+        cal.setTime(todayDate);
+        cal.add(Calendar.DATE, 1);
+        return cal.getTime();
     }
 
     public Date convertStrToJavaDate(String dateStr) {
@@ -1464,6 +1501,11 @@ public class StockSqlUtil {
 //        }
         return mRetrievePrise;
     }
+
+    public class divEntry {
+        float div;
+        int year;
+    }
     public class performanceEntry {
         public float avgprise = 0;
         public float lastprise = 0;
@@ -1484,6 +1526,7 @@ public class StockSqlUtil {
         public float nv = 0;
         public float season[] = new float[4];
         public float year[] = new float[4];
+        public ArrayList<divEntry> annualDiv = new ArrayList<>();
         public ArrayList<Float> div = new ArrayList<>();
         public int lastStrategyId = -1;
         /* If we have unsold item, we need do "buyin strategy estimation analysis" */
@@ -1680,6 +1723,7 @@ public class StockSqlUtil {
         String tableName = annualDividendTable;
         initSelectTable();
         addSelCol("total_dividend");
+        addSelCol("year");
         addSelParmValue("stockid",stockid);
         addSelOrder("year", false);
 
@@ -1688,7 +1732,11 @@ public class StockSqlUtil {
         try {
             int i = 0;
             while (resSet.next()) {
+                divEntry dEnt = new divEntry();
+                dEnt.div = resSet.getFloat("total_dividend");
+                dEnt.year = resSet.getInt("year");
                 pe.div.add(resSet.getFloat("total_dividend"));
+                pe.annualDiv.add(dEnt);
                 i ++;
 //                if(i == 4) {
 //                    break;

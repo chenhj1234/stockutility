@@ -15,6 +15,10 @@ public class StockInfoList {
         stockInfoList.add(sen);
         return stockInfoList.size();
     }
+
+    public int getEntryCount() {
+        return stockInfoList.size();
+    }
     public void printOneEntry(int index) {
         if(index >= stockInfoList.size()) {
             index = stockInfoList.size() - 1;

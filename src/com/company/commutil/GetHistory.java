@@ -8,8 +8,8 @@ import java.util.Date;
 
 public class GetHistory {
     private static int startYear = -1, endYear = -1, startMonth = -1, endMonth = -1, startDay = -1, endDay = -1;
-    private static boolean DEBUG_DOWNLOAD_TWSE = true;
-    private static boolean DEBUG_DOWNLOAD_TPEX = false;
+    private static boolean DEBUG_DOWNLOAD_TWSE = false;
+    private static boolean DEBUG_DOWNLOAD_TPEX = true;
     private static void processArgs(String[] args) {
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];

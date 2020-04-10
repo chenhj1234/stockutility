@@ -150,7 +150,7 @@ public class CSVStackParser {
         walker.walk(mCsvListener, mCsvParser.csfParagraph());
         //mCsvListener.infoList.printOneEntry(0);
         //mCsvListener.infoList.printOneValue(0);
-        return 1;
+        return mCsvListener.infoList.getEntryCount();
     }
 
     public void insertStockId(StockInfoList sInfo) {

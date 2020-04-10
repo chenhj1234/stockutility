@@ -10,7 +10,7 @@ public class StockListUtil {
     private Statement mStatement = null;
     private ResultSet mResultSet = null;
     private PreparedStatement mPreparedStatement = null;
-    private String serverName = "10.20.70.40";
+    private String serverName = "10.20.71.108";
 //    private String serverName = "192.168.1.90";
     private String mydatabase = "stock_identifier_alpha";
     private String tblStockId = "stockid";

@@ -93,7 +93,9 @@ public class PageAndFile {
                 return false;
             }
             String inputLine;
+            int writeLen = 0;
             while ((inputLine = inBufRead.readLine()) != null) {
+                writeLen += inputLine.length();
                 fileOut.write(inputLine);
                 fileOut.write("\n");
             }
@@ -113,7 +115,11 @@ public class PageAndFile {
                 yc.disconnect();
                 yc = null;
             }
-            return true;
+            if(writeLen > 500) {
+                return true;
+            } else {
+                return false;
+            }
         } catch(Exception e) {
             e.printStackTrace();
             return false;
@@ -213,6 +219,8 @@ public class PageAndFile {
     final String tpexIndexPageURLOld = "http://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&o=csv&d=__DATE__&s=0,asc,0";
     final String tpexIndexPageURL = "https://www.tpex.org.tw/web/stock/aftertrading/otc_quotes_no1430/stk_wn1430_result.php?l=zh-tw&o=csv&d=__DATE__&se=EW&s=0,asc,0";
 
+    // return : saved file path if URL can read with code 200 and not 0 byte content
+    //        : null if return 200, url unreachable or 0 byte content
     public String getTWSEPageAndSave(Date date) {
         // We will to get stock list info page from here http://www.twse.com.tw/exchangeReport/MI_INDEX?response=csv&date=20190322&type=ALL
         String twseIndexPage = twseIndexPageURL;
