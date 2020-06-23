@@ -310,7 +310,7 @@ public class CSVStackParser {
     }
 
     public final int TPEX_INDEX_COL_BUYIN = 10;
-    public final int TPEX_INDEX_COL_SELLOUT = 11;
+    public final int TPEX_INDEX_COL_SELLOUT = 12;
     public final int TPEX_INDEX_COL_DEALPRIZE = 2;
     public final int TPEX_INDEX_COL_AMOUNT = 7;
 

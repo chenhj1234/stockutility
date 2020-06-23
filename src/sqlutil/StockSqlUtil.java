@@ -152,6 +152,9 @@ public class StockSqlUtil {
 //        timeString = "'" + timeFormat.format(date) + "'";
         dateString = dateFormat.format(date);
         timeString = timeFormat.format(date);
+        if(stockid.equals("5601")) {
+            System.out.println("Go on");
+        }
         if(checkIdExistInTable(tableName, stockid, dateFormat.format(date))) {
 //            PreparedStatement stmt = mConnection.prepareStatement("update`user` set `exp` = '666'  where `username` = '"+loggedusername+"'");
             if(updaterec) {
@@ -1467,7 +1470,8 @@ public class StockSqlUtil {
         if(date == null) {
             addSelOrder("date", false);
         } else {
-            addSelParmValue("date", date);
+            addSelParmValue("date", date, "<=");
+            addSelOrder("date", false);
         }
         performSelectTable(tableName);
         try {
@@ -1577,6 +1581,15 @@ public class StockSqlUtil {
     }
     public void addSelParmValue(String name, Date value) {
         String insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
+        parmData.add(insertStr);
+    }
+    public void addSelParmValue(String name, Date value, String op) {
+        String insertStr;
+        if(op != null && (op.equals(">") || op.equals(">=") || op.equals("<") || op.equals("<="))) {
+            insertStr = name + " " + op + " '" + convertJavaDateToMySQLStr(value) + "'";
+        } else {
+            insertStr = name + " = '" + convertJavaDateToMySQLStr(value) + "'";
+        }
         parmData.add(insertStr);
     }
     public void addSelParmValue(String name, boolean value) {
