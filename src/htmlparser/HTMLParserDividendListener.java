@@ -5,7 +5,10 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 public class HTMLParserDividendListener extends HTMLParserBaseListener {
@@ -21,6 +24,7 @@ public class HTMLParserDividendListener extends HTMLParserBaseListener {
 
     public class dividendRecord {
         public int year;
+        public Date shareDate;
         public float[] dividend = new float[5];
     }
     int ANNUAL_COLUMN = -1;
@@ -51,14 +55,63 @@ public class HTMLParserDividendListener extends HTMLParserBaseListener {
     private boolean DEBUG_TABLE_LEVEL_CONTENT = true;
 
     private void processTdColumn(String tdStr) {
+        boolean have_share_date_record = false;
         CharStream strInput;
         //System.out.println(infoStr);
         strInput = CharStreams.fromString(tdStr);
         DividendGrammarLexer infoLexer = new DividendGrammarLexer(strInput);
         CommonTokenStream iTokens = new CommonTokenStream(infoLexer);
         DividendGrammarParser infoParser = new DividendGrammarParser(iTokens);
-        ParseTree pt = infoParser.number();
-        if(infoParser.typeIndex >= infoParser.TYPE_INDEX_INT) {
+        DividendGrammarParser.NumberContext numCtx = infoParser.number();
+        if(infoParser.typeIndex == DividendGrammarParser.TYPE_INDEX_CASH_DATE) {
+            have_share_date_record = true;
+        }
+        if(infoParser.typeIndex >= DividendGrammarParser.TYPE_INDEX_INT) {
+            switch(infoParser.typeIndex) {
+                case DividendGrammarParser.TYPE_INDEX_ANNUAL_YEAR:
+                    divRec = new dividendRecord();
+                    System.out.println("Annual year:" + numCtx.annualYear().INT().getText());
+                    divRec.year = Integer.valueOf(numCtx.annualYear().INT().getText());
+                    currentIndex = 0;
+                    break;
+                case DividendGrammarParser.TYPE_INDEX_DATE:
+                    System.out.println("Share date:" + numCtx.dateRepresentation().getText());
+                    try {
+                        divRec.shareDate = new SimpleDateFormat("yyyy-MM-dd").parse(numCtx.dateRepresentation().getText());
+                    } catch (Exception e) {
+                        divRec.shareDate = null;
+                    }
+                    break;
+                case DividendGrammarParser.TYPE_INDEX_REAL:
+                    System.out.println("Get number:" + numCtx.REAL().getText());
+                    divRec.dividend[currentIndex] = Float.valueOf(numCtx.REAL().getText());
+                    currentIndex ++;
+                    if ((currentIndex == (DividendGrammarParser.TYPE_INDEX_TOTAL + 1)) && (divRec.shareDate != null)) {
+                        Iterator iter = divRecList.iterator();
+                        while(iter.hasNext()) {
+                            dividendRecord rec = (dividendRecord)iter.next();
+                            if(rec.year == divRec.year) {
+                                for(int i = 0;i < 5;i++) {
+                                    divRec.dividend[i] += rec.dividend[i];
+                                }
+                                divRecList.remove(rec);
+                                break;
+                            }
+                        }
+                        divRecList.add(divRec);
+                    }
+                    break;
+                case DividendGrammarParser.TYPE_INDEX_INT:
+                    if(!have_share_date_record) {
+                        divRec = new dividendRecord();
+                        System.out.println("Annual year:" + numCtx.INT().getText());
+                        divRec.year = Integer.valueOf(numCtx.INT().getText());
+                        currentIndex = 0;
+                    }
+                default:
+                    break;
+            }
+            /*
             if (currentIndex == 0) {
                 divRec = new dividendRecord();
                 divRec.year = Integer.valueOf(pt.getText());
@@ -80,6 +133,8 @@ public class HTMLParserDividendListener extends HTMLParserBaseListener {
             } else {
                 System.out.println("Error:");
             }
+
+             */
         }
     }
 
@@ -138,7 +193,7 @@ public class HTMLParserDividendListener extends HTMLParserBaseListener {
         for(int i = 0;i < tableList.size();i++) {
             tableDec dec = tableList.get(i);
             //System.out.println("table i:" + i + " is table:" + dec.isParent);
-            if(!dec.isParent && dec.ctx.htmlContent().getText().replaceAll("\n", "").matches(".*盈\\s+餘\\s+配\\s+股.*")) {
+            if(!dec.isParent && dec.ctx.htmlContent().getText().replaceAll("\n", "").matches(".*盈\\s*餘\\s*配\\s*股.*")) {
                 //System.out.println("Found ctx:" + dec.ctx.htmlContent().getText());
                 handleTableInternalLevel(dec.ctx, 0);
             }

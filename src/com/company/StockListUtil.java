@@ -139,7 +139,6 @@ public class StockListUtil {
                 String id = resSet.getString("stockid");
                 stockIdList.add(new StockIdEntry(id, id));
             }
-            resSet.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -161,7 +160,6 @@ public class StockListUtil {
                 String id = resSet.getString("stockid");
                 stockIdList.add(new StockIdEntry(id, id));
             }
-            resSet.close();
         } catch (Exception e) {
             e.printStackTrace();
         }

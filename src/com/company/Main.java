@@ -489,7 +489,6 @@ public class Main {
                             htmlListener.searnBeforeTaxListener.alist2);
                     stu.insertMonthlyEarningTable(stockid, htmlListener.monthListener.year1, htmlListener.monthListener.alist1);
                     stu.insertMonthlyEarningTable(stockid, htmlListener.monthListener.year2, htmlListener.monthListener.alist2);
-
                 }
 
             } else {

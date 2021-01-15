@@ -9,10 +9,8 @@ import htmlparser.StackBasicInformation;
 import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.*;
 import java.util.Date;
-import java.util.HashMap;
 
 public class StockSqlUtil {
     private boolean DEBUG_SQL_CMD = false;
@@ -50,6 +48,9 @@ public class StockSqlUtil {
     public final String strategyTable = "buyin_strategy";
     public final String kHistDividendScoreTableName = "hist_div_score";
     public final String kPriseHistScoreTableName = "prise_hist_score";
+    public final String kSimulationTableName = "simulation_table";
+    public final String kSimulationYoyTableName = "simulation_score_yoy_table";
+
     // With regular daily buyin, the stockid and date will be checked, if matched, not buyin
     public static final int BUYIN_REGULAR_DAILY = 0;
     // With regular daily buyin, the stockid will be checked, if matched, buyin, add amount and count avarage prise
@@ -336,45 +337,31 @@ public class StockSqlUtil {
 
     public boolean insertAnnualDividendTable(String stockid, ArrayList<HTMLParserDividendListener.dividendRecord> aList) {
         String tableName = annualDividendTable;
-        String query = null;
         for(int i = 0;i < aList.size();i++) {
             HTMLParserDividendListener.dividendRecord rec = aList.get(i);
             if(checkIdExistInTable(tableName, stockid, rec.year)) {
                 if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + rec.year + " exist, leave");
-                continue;
+                initUpdateTable();
+                addUpdateCol("cash_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH]);
+                addUpdateCol("earn_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN]);
+                addUpdateCol("stock_dividend_capital", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP]);
+                addUpdateCol("stock_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK]);
+                addUpdateCol("total_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL]);
+                addUpdateParam("stockid", stockid);
+                addUpdateParam("year", rec.year);
+                performUpdateTable(tableName);
+            } else {
+                if (DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + rec.year + " not exist, try insert");
+                initInsertTable();
+                insertValue("stockid", stockid);
+                insertValue("year", rec.year);
+                insertValue("cash_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH]);
+                insertValue("earn_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN]);
+                insertValue("stock_dividend_capital", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP]);
+                insertValue("stock_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK]);
+                insertValue("total_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL]);
+                insertIntoTable(tableName);
             }
-            if(DEBUG_VERBOSE) System.out.println("id:" + stockid + " year:" + rec.year + " not exist, try insert");
-            initInsertTable();
-            insertValue("stockid", stockid);
-            insertValue("year", rec.year);
-            insertValue("cash_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH]);
-            insertValue("earn_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN]);
-            insertValue("stock_dividend_capital", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP]);
-            insertValue("stock_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK]);
-            insertValue("total_dividend", rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL]);
-            insertIntoTable(tableName);
-//            query = "insert into " + tableName + " values ( '" + stockid + "', " +
-//                    rec.year + ", " +
-//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_CASH] + ", " +
-//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_EARN] + ", " +
-//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK_CAP] + ", " +
-//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_STOCK] + ", " +
-//                    rec.dividend[DividendGrammarParser.TYPE_INDEX_TOTAL] + ")";
-//            try {
-//                if(DEBUG_SQL_CMD) System.out.println(query);
-//                connectToServer();
-//                mStatement.executeUpdate(query);
-//                mStatement.close();
-//                if(mConnection != null) {
-//                    mConnection.close();
-//                    mConnection = null;
-//                }
-//                if(DEBUG_VERBOSE) System.out.println("insert success");
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//                System.out.println("insert failed");
-//                System.exit(1);
-//            }
         }
         return true;
     }
@@ -561,17 +548,8 @@ public class StockSqlUtil {
 
     public boolean checkIdExistInTable(String tableName, String stockid, String colName, String colStr) {
         String checkQuery;
-        checkQuery = "select * from " + tableName +
-                " where stockid = '" + stockid + "' ";
         boolean retval = false;
-        if(colStr == null) {
-            checkQuery = checkQuery + " and " + colName + " is null";
-        } else {
-            checkQuery = checkQuery + " and " + colName + " = '" + colStr + "'";
-        }
         try {
-//            connectToServer();
-//            mResultSet = mStatement.executeQuery(checkQuery);
             initSelectTable();
             addSelParmValue("stockid", stockid);
             addSelParmValue(colName, colStr);
@@ -580,17 +558,47 @@ public class StockSqlUtil {
                 retval = true;
             }
             finishSelectQuery();
-//            mResultSet.close();
-//            if(mConnection != null) {
-//                mConnection.close();
-//                mConnection = null;
-//            }
         } catch (Exception e) {
             e.printStackTrace();
         }
         return retval;
     }
 
+    public boolean checkIdExistInTable(String tableName, String stockid, String colName, int colval) {
+        String checkQuery;
+        boolean retval = false;
+        try {
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue(colName, colval);
+            performSelectTable(tableName);
+            if(mResultSet.next()) {
+                retval = true;
+            }
+            finishSelectQuery();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return retval;
+    }
+
+    public boolean checkIdExistInTable(String tableName, String stockid, String colName, Date colval) {
+        String checkQuery;
+        boolean retval = false;
+        try {
+            initSelectTable();
+            addSelParmValue("stockid", stockid);
+            addSelParmValue(colName, colval);
+            performSelectTable(tableName);
+            if(mResultSet.next()) {
+                retval = true;
+            }
+            finishSelectQuery();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return retval;
+    }
 
     public void analysisReturnRatio(String stockid, Date analysisDate, String tab) {
 //        String checkQuery;
@@ -987,7 +995,7 @@ public class StockSqlUtil {
     public final static int SELLOUT_AMOUNT_ALL = 100000;
     public void sellout(String stockid, int amount, String datestr, float sellprize) {
         String tableName = buyinTable;
-        if(checkIdExistInTable(tableName, stockid, "sellday", null)) {
+        if(checkIdExistInTable(tableName, stockid, "sellday", (String)null)) {
             initUpdateTable();
             addUpdateCol("sellday", datestr);
             addUpdateCol("sellprize", sellprize);
@@ -2629,15 +2637,32 @@ public class StockSqlUtil {
         if(basicScore > 0) return -0.5f;
         return -1f;
     }
+
+    private void assignNewDiv(float div, float[] threeYearDivs) {
+        threeYearDivs[0] = div;
+    }
+    private void shiftThreeYearDiv(float[] threeYearDivs) {
+        threeYearDivs[2] = threeYearDivs[1];
+        threeYearDivs[1] = threeYearDivs[0];
+    }
+
+    private float countThreeYearDivTotal(float[] threeYearDivs) {
+        return threeYearDivs[0] + threeYearDivs[1] + threeYearDivs[2];
+    }
+
+    private float getYearDiv(int year, float[] threeYearDivs) {
+        return threeYearDivs[year];
+    }
     public void getOneHistDivScore(String stockid, String stockName, Date date) {
         float rrScore = 0;
         float rrScoreAvg = 0;
         performanceEntry pe = getPerformance(stockid, false, true);
         int positiveCnt = 0;
         float rr = 0;
-        float diV;
+        //float diV;
         float prz;
-        float div3 = -1, div2 = -1;
+        //float div3 = -1, div2 = -1;
+        float[] threeYearDiv = new float[]{-1.0f, -1.0f, -1.0f};
         float div3avg = -1, div3avgCheck = -1, div3avgScore = 0;
         float totalDiv = 0;
         if(date != null) {
@@ -2651,22 +2676,24 @@ public class StockSqlUtil {
         }
         System.out.println("Prize:" + prz);
         for(int i = 0;i < pe.div.size();i++) {
-            diV = pe.div.get(i);
-            if(i < 5) totalDiv += diV;
-            if(div3 >= 0) {
+            //diV = pe.div.get(i);
+            assignNewDiv(pe.div.get(i), threeYearDiv);
+            if(i < 5) totalDiv += getYearDiv(0, threeYearDiv);
+            if(getYearDiv(2, threeYearDiv) >= 0) {
                 if(div3avg >= 0) {
-                    div3avgCheck = (div3avg - diV - div2 - div3) / div3avg;
+                    div3avgCheck = (div3avg - countThreeYearDivTotal(threeYearDiv)) / div3avg;
                     if(div3avgCheck > 0.05) {
                         div3avgScore += 0.05;
                     }
                 }
-                if(oShowDebugMessage) System.out.println("div3avg:" + div3avg + " div1:" + diV + " div2:" + div2 + " div3:" + div3 + " div3avgCheck:" + div3avgCheck + " div3avgScore:" + div3avgScore);
-                div3avg = diV + div2 + div3;
+                if(oShowDebugMessage) System.out.println("div3avg:" + div3avg + " div1:" + getYearDiv(0, threeYearDiv) + " div2:" + getYearDiv(1, threeYearDiv) + " div3:" + getYearDiv(2, threeYearDiv) + " div3avgCheck:" + div3avgCheck + " div3avgScore:" + div3avgScore);
+                div3avg = countThreeYearDivTotal(threeYearDiv);
+
             }
-            if(diV > 0) {
+            if(getYearDiv(0, threeYearDiv) > 0) {
                 positiveCnt ++;
             }
-            rr = diV / prz;
+            rr = getYearDiv(0, threeYearDiv) / prz;
             if(rr > 0.1) {
                 rrScore += 1.5;
             }
@@ -2680,8 +2707,9 @@ public class StockSqlUtil {
                 rrScore += 0.5;
             }
             rrScoreAvg += 1;
-            div3 = div2;
-            div2 = diV;
+//            div3 = div2;
+//            div2 = diV;
+            shiftThreeYearDiv(threeYearDiv);
         }
         float rrScoreNorm = rrScore / rrScoreAvg;
         /* Check for NaN */
@@ -2857,6 +2885,463 @@ public class StockSqlUtil {
             return totalScore;
         }
     }
+    public float getSimulationScore(String stockid, Date buyDate) {
+        return 0.0f;
+    }
+    public float getHistPrise(String stockid, Date buyDate) {
+        String tableName = dailyInfoHistoryTable;
+        initSelectTable();
+        addSelParmValue("stockid", stockid);
+        addSelParmValue("date", buyDate, "=");
+        addSelOrder("date", false); // order by date desc
+        ResultSet rSet = performSelectTable(tableName);
+        float prz = 0.0f;
+        try {
+            while (rSet.next()) {
+                prz = rSet.getFloat("dealprise");
+                if(prz == 0) prz = rSet.getFloat("sellout");
+                if(prz == 0) prz = rSet.getFloat("buyin");
+                if(prz != 0) break;
+            }
+            rSet.close();
+        }catch (Exception e) {
+
+        }
+        finishSelectQuery();
+        return prz;
+    }
+
+    class HistPrizeRecord {
+        public float prize;
+        public Date date;
+        public HistPrizeRecord(float f, Date d) {
+            prize = f;
+            date = d;
+        }
+    }
+    public ArrayList<HistPrizeRecord> getHistPriseRecList(String stockid, Date startDate, Date endDate) {
+        String tableName = dailyInfoHistoryTable;
+        initSelectTable();
+        addSelParmValue("stockid", stockid);
+        if(startDate != null)addSelParmValue("date", startDate, ">=");
+        if(endDate != null) addSelParmValue("date", endDate, "<=");
+        ResultSet rSet = performSelectTable(tableName);
+        ArrayList<HistPrizeRecord> przList = new ArrayList();
+        float prz = 0.0f;
+        java.sql.Date sqlDate;
+        Date d;
+        try {
+            while (rSet.next()) {
+                try {
+                    prz = rSet.getFloat("dealprise");
+                    sqlDate = rSet.getDate("date");
+                    d = convertMySQLDateToJava(sqlDate);
+                    if (prz == 0) prz = rSet.getFloat("sellout");
+                    if (prz == 0) prz = rSet.getFloat("buyin");
+                    if (prz != 0) {
+                        przList.add(new HistPrizeRecord(prz,d));
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }catch (Exception e) {
+
+        }
+        finishSelectQuery();
+        return przList;
+    }
+    public ArrayList<Float> getHistPriseList(String stockid, Date startDate, Date endDate) {
+        String tableName = dailyInfoHistoryTable;
+        initSelectTable();
+        addSelParmValue("stockid", stockid);
+        if(startDate != null)addSelParmValue("date", startDate, ">=");
+        if(endDate != null) addSelParmValue("date", endDate, "<=");
+        ResultSet rSet = performSelectTable(tableName);
+        ArrayList<Float> przList = new ArrayList();
+        float prz = 0.0f;
+        try {
+            while (rSet.next()) {
+                try {
+                    prz = rSet.getFloat("dealprise");
+                    if (prz == 0) prz = rSet.getFloat("sellout");
+                    if (prz == 0) prz = rSet.getFloat("buyin");
+                    if (prz != 0) {
+                        przList.add(prz);
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }catch (Exception e) {
+
+        }
+        finishSelectQuery();
+        return przList;
+    }
+
+    public float getAnnualDividend(String stockid, int lunar_year) {
+        String tableName = annualDividendTable;
+        initSelectTable();
+        addSelCol("total_dividend");
+        addSelParmValue("stockid",stockid);
+        addSelParmValue("year", lunar_year);
+        ResultSet resSet = performSelectTable(tableName);
+        float prz = 0;
+        try {
+            while (resSet.next()) {
+                prz = resSet.getFloat("total_dividend");
+                break;
+            }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        finishSelectQuery();
+        return prz;
+    }
+
+    public class ProfitRatio {
+        public float locking_day_ratio;
+        public float expected_value_ratio;
+        public float average_value_ratio;
+        public float score_weight;
+        public ProfitRatio(float lk, float exp, float avg, float sw) {
+            locking_day_ratio = lk;
+            expected_value_ratio = exp;
+            average_value_ratio = avg;
+            score_weight = sw;
+        }
+    }
+
+    public class SimulationResult {
+        String stockid;
+        Date simulation_date;
+        public float share_ratio;
+        public int interval;
+        public ProfitRatio pr0;
+        public ProfitRatio pr10;
+        public ProfitRatio pr20;
+        public SimulationResult(String sid, Date sd, float rr, int intv, ProfitRatio p0, ProfitRatio p10, ProfitRatio p20) {
+            stockid = sid;
+            simulation_date = sd;
+            share_ratio = rr;
+            interval = intv;
+            pr0 = p0;
+            pr10 = p10;
+            pr20 = p20;;
+        }
+    }
+
+    public ProfitRatio getHistExpectedPriseEarning(String stockid, Date startDate, Date endDate, float cutting_ratio, float sw) {
+        ArrayList<Float> przList = getHistPriseList(stockid, startDate, endDate);
+        float firstPrz = 0, prz, total_count = 0, profit = 0, profit_day_count = 0;
+        Iterator iter = przList.iterator();
+        if(iter.hasNext()) {
+            firstPrz = (Float)iter.next();
+        }
+        while(iter.hasNext()) {
+            prz = (Float)iter.next();
+            if((prz/firstPrz) > (1 + cutting_ratio)) {
+                profit += (prz - firstPrz);
+                profit_day_count ++;
+            }
+            total_count ++;
+        }
+        ProfitRatio profitRatio;
+        if(profit_day_count != 0) {
+            profitRatio = new ProfitRatio(profit_day_count / total_count, profit / (total_count * firstPrz), profit / (profit_day_count * firstPrz), sw);
+        }
+        else {
+            profitRatio = new ProfitRatio(profit_day_count / total_count, profit / (total_count * firstPrz), 0, sw);
+        }
+        return profitRatio;
+
+    }
+    // Assume I bought 10 at the simulation date
+    // If stock drop down 20% , I buy 5, prise change to average prise , reset
+    // If stock goes up 20%, I sell 5, prise change to new prise , reset
+    public void getPriseDistribution(String stockid, Date startDate, Date endDate) {
+        ArrayList<HistPrizeRecord> przList = getHistPriseRecList(stockid, startDate, endDate);
+        HistPrizeRecord przRec;
+        float refPrz = 0, prz = 0, stock_count = 10, cost = 0, earning = 0, sell_buy_amount = 0, buy_amount = 5, netval_cost = 0, buy_prize = 0, max_cost = 0, total_earning = 0;
+        Iterator iter = przList.iterator();
+        if(iter.hasNext()) {
+            przRec = (HistPrizeRecord)iter.next();
+            buy_prize = refPrz = przRec.prize;
+        }
+        netval_cost = cost = stock_count * refPrz;
+        System.out.println("Init cost:" + cost + " earning:" + earning + " left amount:" + stock_count + " value:" + stock_count * prz + " prize:" + buy_prize + " orig cost:" + netval_cost);
+        while(iter.hasNext()) {
+            przRec = (HistPrizeRecord)iter.next();
+            prz = przRec.prize;
+            if(prz/refPrz > 1.2) {
+                if(stock_count > 0) {
+                    if (stock_count > 2) {
+                        sell_buy_amount = stock_count / 2;
+                    } else {
+                        sell_buy_amount = stock_count;
+                    }
+                    earning = sell_buy_amount * prz;
+                    total_earning += earning;
+                    stock_count -= sell_buy_amount;
+                    cost -= buy_prize * sell_buy_amount;
+                    System.out.println("Found earning 20% profit, sell:" + sell_buy_amount + " cost:" + cost + " earning:" + earning + " left amount:" + stock_count + " current prize:" + prz + " ref prize:" + refPrz + " date:" + przRec.date);
+                } else {
+                    System.out.println("Found earning 20% profit, no stock to sell");
+                }
+                refPrz = prz;
+            } else if(prz/refPrz < 0.8){
+                sell_buy_amount = buy_amount;
+                cost += sell_buy_amount * prz;
+                stock_count += sell_buy_amount;
+                buy_prize = cost/stock_count;
+                refPrz = prz;
+               System.out.println("Found droping 20%, buy:" + sell_buy_amount + " cost:" + cost + " earning:" + earning + " left amount:" + stock_count + " current prize:" + prz + " ref prize:" + refPrz + " date:" + przRec.date);
+            }
+            if(max_cost < cost) max_cost = cost;
+        }
+        System.out.println("Final cost:" + cost + " earning:" + total_earning + " left amount:" + stock_count + " value:" + stock_count * prz + " total:" + (total_earning + stock_count * prz) + " prize:" + prz);
+        System.out.println("Max cost:" + max_cost + " profit:" + (total_earning + stock_count * prz - cost) + " ratio:" + ((total_earning + stock_count * prz - cost)/max_cost));
+    }
+
+    public SimulationResult simulate_yoy_performance(String stockid, Date simulate_date, int year_offset, boolean do_update_db) {
+        Calendar prevYear = Calendar.getInstance();
+        Date today = new Date();
+        float prz;
+        if(simulate_date == null && (year_offset > 5 || year_offset <= 0)) {
+            System.out.println("Specify date or year offset");
+            return null;
+        }
+        if(simulate_date == null) {
+            prevYear.add(Calendar.YEAR, - year_offset);
+            int year = prevYear.get(Calendar.YEAR);
+            // 1/1 is somehow a holiday
+            prevYear.set(year,0,1);
+            simulate_date = prevYear.getTime();
+        } else {
+            int this_year = prevYear.get(Calendar.YEAR);
+            prevYear.setTime(simulate_date);
+            int simu_year = prevYear.get(Calendar.YEAR);
+            year_offset = this_year - simu_year;
+        }
+        // 1. get the prise of the day
+        int limit = 0;
+        while((prz = getHistPrise(stockid, simulate_date)) == 0) {
+            prevYear.add(Calendar.DATE, 1);
+            simulate_date = prevYear.getTime();
+            if(limit > 10) {
+                return null;
+            }
+            limit ++;
+        }
+        System.out.println("Stockid:" + stockid + " Date:" + simulate_date + " prise:" + prz);
+        // 2. get annual share
+        float share_amount = 0;
+        int year_of_lunar = prevYear.get(Calendar.YEAR) - 1911;
+        for(int i = 0;i < year_offset; i++) {
+            share_amount += getAnnualDividend(stockid, year_of_lunar + i);
+        }
+        System.out.println("Year:" + year_of_lunar + " share:" + share_amount + " ratio:" + (share_amount/prz));
+        // 3. Simulate "expected earning value"
+        StockSqlUtil.ProfitRatio pr = getHistExpectedPriseEarning(stockid, simulate_date, today, 0, 0.08333f);
+        System.out.println("Cutting ratio 0 Profit count ratio:" + pr.locking_day_ratio + " exp value ratio:" + pr.expected_value_ratio + " avg value ratio:" + pr.average_value_ratio);
+        StockSqlUtil.ProfitRatio pr10 = getHistExpectedPriseEarning(stockid, simulate_date, today, 0.1f, 0.16667f);
+        System.out.println("Cutting ratio 10% Profit count ratio:" + pr10.locking_day_ratio + " exp value ratio:" + pr10.expected_value_ratio + " avg value ratio:" + pr10.average_value_ratio);
+        StockSqlUtil.ProfitRatio pr20 = getHistExpectedPriseEarning(stockid, simulate_date, today, 0.2f, 0.25f);
+        System.out.println("Cutting ratio 20% Profit count ratio:" + pr20.locking_day_ratio + " exp value ratio:" + pr20.expected_value_ratio + " avg value ratio:" + pr20.average_value_ratio);
+        SimulationResult sRes = new SimulationResult(stockid, today, share_amount/(prz * year_offset), year_offset, pr, pr10, pr20);
+        if(do_update_db)
+            addSimulationResult(sRes);
+        return sRes;
+    }
+
+    public void simulate_yoy_distribution(String stockid, Date simulate_date, int year_offset, boolean do_update_db) {
+        Calendar prevYear = Calendar.getInstance();
+        Date today = new Date();
+        float prz;
+        if(simulate_date == null && (year_offset > 5 || year_offset <= 0)) {
+            System.out.println("Specify date or year offset");
+            return;
+        }
+        if(simulate_date == null) {
+            prevYear.add(Calendar.YEAR, - year_offset);
+            int year = prevYear.get(Calendar.YEAR);
+            // 1/1 is somehow a holiday
+            prevYear.set(year,0,1);
+            simulate_date = prevYear.getTime();
+        } else {
+            int this_year = prevYear.get(Calendar.YEAR);
+            prevYear.setTime(simulate_date);
+            int simu_year = prevYear.get(Calendar.YEAR);
+            year_offset = this_year - simu_year;
+        }
+        // 1. get the prise of the day
+        int limit = 0;
+        while((prz = getHistPrise(stockid, simulate_date)) == 0) {
+            prevYear.add(Calendar.DATE, 1);
+            simulate_date = prevYear.getTime();
+            if(limit > 10) {
+                System.out.println("Stockid:" + stockid + " Date:" + simulate_date + " has no prise record on this date, exit");
+                return;
+            }
+            limit ++;
+        }
+        System.out.println("Stockid:" + stockid + " Date:" + simulate_date + " prise:" + prz);
+        // 2. get annual share
+        getPriseDistribution(stockid, simulate_date, today);
+    }
+    public final String kStockIdField = "stockid";
+    public final String kSimulationDateField = "simulation_date";
+    public final String kSimulationIntervalField = "simulate_interval_year";
+    public final String kSimulationReturnRatioField = "return_ratio";
+    public final String kSimulationProfitLockRatio0Field = "profit_lock_ratio_0";
+    public final String kSimulationProfitExpectedRatio0Field = "profit_expected_value_ratio_0";
+    public final String kSimulationProfitAverageRatio0Field = "profit_average_value_ratio_0";
+    public final String kSimulationProfitLockRatio10Field = "profit_lock_ratio_10";
+    public final String kSimulationProfitExpectedRatio10Field = "profit_expected_value_ratio_10";
+    public final String kSimulationProfitAverageRatio10Field = "profit_average_value_ratio_10";
+    public final String kSimulationProfitLockRatio20Field = "profit_lock_ratio_20";
+    public final String kSimulationProfitExpectedRatio20Field = "profit_expected_value_ratio_20";
+    public final String kSimulationProfitAverageRatio20Field = "profit_average_value_ratio_20";
+    public final String kSimulationScoreField = "simulation_score";
+
+    public float getSimulationResScore(SimulationResult sRes) {
+        // 0%  1/6
+        // 10% 2/6
+        // 20% 3/6
+        return sRes.share_ratio
+                + (sRes.pr0.locking_day_ratio + sRes.pr0.expected_value_ratio + sRes.pr0.average_value_ratio) * sRes.pr0.score_weight
+                + (sRes.pr10.locking_day_ratio + sRes.pr10.expected_value_ratio + sRes.pr10.average_value_ratio) * sRes.pr10.score_weight
+                + (sRes.pr20.locking_day_ratio + sRes.pr20.expected_value_ratio + sRes.pr20.average_value_ratio) * sRes.pr20.score_weight;
+    }
+    public void addSimulationResult(SimulationResult sRes) {
+        String tableName = kSimulationTableName;
+        if(checkIdExistInTable(tableName, sRes.stockid, kSimulationIntervalField, sRes.interval)) {
+            initUpdateTable();
+            addUpdateCol(kSimulationDateField, sRes.simulation_date);
+            addUpdateCol(kSimulationReturnRatioField, sRes.share_ratio);
+            addUpdateCol(kSimulationProfitLockRatio0Field, sRes.pr0.locking_day_ratio);
+            addUpdateCol(kSimulationProfitExpectedRatio0Field, sRes.pr0.expected_value_ratio);
+            addUpdateCol(kSimulationProfitAverageRatio0Field, sRes.pr0.average_value_ratio);
+            addUpdateCol(kSimulationProfitLockRatio10Field, sRes.pr10.locking_day_ratio);
+            addUpdateCol(kSimulationProfitExpectedRatio10Field, sRes.pr10.expected_value_ratio);
+            addUpdateCol(kSimulationProfitAverageRatio10Field, sRes.pr10.average_value_ratio);
+            addUpdateCol(kSimulationProfitLockRatio20Field, sRes.pr20.locking_day_ratio);
+            addUpdateCol(kSimulationProfitExpectedRatio20Field, sRes.pr20.expected_value_ratio);
+            addUpdateCol(kSimulationProfitAverageRatio20Field, sRes.pr20.average_value_ratio);
+            addUpdateCol(kSimulationScoreField, getSimulationResScore(sRes));
+            addUpdateParam(kStockIdField, sRes.stockid);
+            addUpdateParam(kSimulationIntervalField, sRes.interval);
+            performUpdateTable(tableName);
+        } else {
+            initInsertTable();
+            insertValue(kStockIdField, sRes.stockid);
+            insertValue(kSimulationDateField, sRes.simulation_date);
+            insertValue(kSimulationIntervalField, sRes.interval);
+            insertValue(kSimulationReturnRatioField, sRes.share_ratio);
+            insertValue(kSimulationProfitLockRatio0Field, sRes.pr0.locking_day_ratio);
+            insertValue(kSimulationProfitExpectedRatio0Field, sRes.pr0.expected_value_ratio);
+            insertValue(kSimulationProfitAverageRatio0Field, sRes.pr0.average_value_ratio);
+            insertValue(kSimulationProfitLockRatio10Field, sRes.pr10.locking_day_ratio);
+            insertValue(kSimulationProfitExpectedRatio10Field, sRes.pr10.expected_value_ratio);
+            insertValue(kSimulationProfitAverageRatio10Field, sRes.pr10.average_value_ratio);
+            insertValue(kSimulationProfitLockRatio20Field, sRes.pr20.locking_day_ratio);
+            insertValue(kSimulationProfitExpectedRatio20Field, sRes.pr20.expected_value_ratio);
+            insertValue(kSimulationProfitAverageRatio20Field, sRes.pr20.average_value_ratio);
+            insertValue(kSimulationScoreField, getSimulationResScore(sRes));
+            insertIntoTable(tableName);
+        }
+    }
+
+    public class OverallResultItem {
+        public SimulationResult res;
+        public String desc;
+        public float itemScore;
+        public float weight;
+        public OverallResultItem(SimulationResult r, String d, float w) {
+            res = r;
+            desc = d;
+            weight = w;
+            itemScore = getSimulationResScore(res);
+        }
+        public float getWeightedItemScore() {
+            return itemScore * weight;
+        }
+    }
+    ArrayList<OverallResultItem> gOverallItemList;
+    public void initOverallScore() {
+        gOverallItemList = new ArrayList<>();
+    }
+
+    public void addOverallItem(SimulationResult r, String d, float w) {
+        OverallResultItem i = new OverallResultItem(r,d,w);
+        gOverallItemList.add(i);
+    }
+
+    public float countOverallItemScore(ArrayList<OverallResultItem> sResItemList) {
+        Iterator iter = sResItemList.iterator();
+        OverallResultItem item;
+        float overall_score = 0;
+        while(iter.hasNext()) {
+            item = (OverallResultItem)iter.next();
+            if(item != null)
+                overall_score += item.getWeightedItemScore();
+        }
+        return overall_score;
+    }
+    public void addOverallSimulationResult(String stockid, Date date, boolean do_update_db) {
+        addOverallSimulationResult(stockid,date, gOverallItemList, do_update_db);
+    }
+    public final String kDateField = "date";
+    public final String[] kSimulationScoreYoyScoreField = {"score1", "score2", "score3"};
+    public final String[] kSimulationScoreYoyScoreDescField = {"score1_desc", "score2_desc", "score3_desc"};
+    public final String kSimulationScoreYoyOverallScoreField = "overall_score";
+
+    public void addOverallSimulationResult(String stockid, Date date, ArrayList<OverallResultItem> sResList, boolean do_update_db) {
+        String tableName = kSimulationYoyTableName;
+        float score = countOverallItemScore(sResList);
+        System.out.println("Total score:" + score);
+        if(!do_update_db) {
+            return;
+        }
+        OverallResultItem resi;
+        if(checkIdExistInTable(tableName, stockid, kDateField, date)) {
+            initUpdateTable();
+            for(int i = 0;i < 3/*kSimulationScoreYoyScoreField.length*/;i++) {
+                resi = sResList.get(i);
+                if(resi != null) {
+                    addUpdateCol(kSimulationScoreYoyScoreField[i], resi.itemScore);
+                    addUpdateCol(kSimulationScoreYoyScoreDescField[i], resi.desc);
+                    System.out.println(sResList.get(i).desc + " score:" + resi.itemScore);
+                } else {
+                    addUpdateCol(kSimulationScoreYoyScoreField[i], 0);
+                    addUpdateCol(kSimulationScoreYoyScoreDescField[i], "no rec");
+                }
+            }
+            addUpdateCol(kSimulationScoreYoyOverallScoreField, score);
+            addUpdateParam(kStockIdField, stockid);
+            addUpdateParam(kDateField, date);
+            performUpdateTable(tableName);
+        } else {
+            initInsertTable();
+            insertValue(kStockIdField, stockid);
+            insertValue(kDateField, date);
+            for(int i = 0;i < 3/*kSimulationScoreYoyScoreField.length*/;i++) {
+                resi = sResList.get(i);
+                if (resi != null) {
+                    insertValue(kSimulationScoreYoyScoreField[i], resi.itemScore);
+                    insertValue(kSimulationScoreYoyScoreDescField[i], resi.desc);
+                    System.out.println(sResList.get(i).desc + " score:" + resi.itemScore);
+                } else {
+                    insertValue(kSimulationScoreYoyScoreField[i], 0);
+                    insertValue(kSimulationScoreYoyScoreDescField[i], "no rec");
+                }
+            }
+            insertValue(kSimulationScoreYoyOverallScoreField, score);
+            insertIntoTable(tableName);
+        }
+    }
+
     public float getPriseHistScore(String stockid, Date buyDate) {
         String tableName = dailyInfoHistoryTable;
         float buyPrise = getPrise(stockid, buyDate);
@@ -2876,7 +3361,7 @@ public class StockSqlUtil {
         boolean have30Pa = false;
         boolean have40Pa = false;
         boolean have50Pa = false;
-        float lockupScroe;
+        float lockupScore;
         AvoidLockUpScore lockUpScore = new AvoidLockUpScore();
         initSelectTable();
         addSelCol("dealprise");
@@ -2976,7 +3461,7 @@ public class StockSqlUtil {
             }
             finishSelectQuery();
 //            System.out.println("Max 30% duration:" + max_30pa_duration + " average 30% duration:" + (total_30pa_dur_count == 0 ? 0:(total_count/total_30pa_dur_count)));
-            lockupScroe = lockUpScore.getLockUpScore();
+            lockupScore = lockUpScore.getLockUpScore();
             tableName = kPriseHistScoreTableName;
             for(int i = 0;i < priseHistInfoList.size(); i++) {
                 pInfo = priseHistInfoList.get(i);
@@ -3012,8 +3497,8 @@ public class StockSqlUtil {
                     insertIntoTable(tableName);
                 }
             }
-            System.out.println("score log:" + Math.log10(lockupScroe));
-            return (float)(Math.log10(lockupScroe)/10);
+            System.out.println("score log:" + Math.log10(lockupScore));
+            return (float)(Math.log10(lockupScore)/10);
         } catch ( Exception e) {
             e.printStackTrace();
         }
