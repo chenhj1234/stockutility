@@ -25,6 +25,7 @@ public class StockSqlUtil {
     // Table for stock id and name matching list
     public final String tblStockId = "stockid";
     public final String tblStockIdUpdate = "stockid_for_update";
+    public final String tblStockIdUpdateAlpha = "stockid_for_update_alpha";
 
     public final String dailyInfoTable = "daily_info_table";
     public final String dailyInfoHistoryTable = "daily_info_table_hist";
@@ -64,6 +65,13 @@ public class StockSqlUtil {
     private String driverName = "com.mysql.cj.jdbc.Driver";
 
     public String getTblStockIdUpdate() {
+        return tblStockIdUpdate;
+    }
+
+    public String getTblStockIdUpdate(boolean isAlpha) {
+        if (isAlpha) {
+            return tblStockIdUpdateAlpha;
+        }
         return tblStockIdUpdate;
     }
 

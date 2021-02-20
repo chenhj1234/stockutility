@@ -116,7 +116,7 @@ public class StockListUtil {
         try {
             String tableName = table_stockid_update;
             connectToServer();
-            mResultSet = mStatement.executeQuery("select * from " + tableName + " where length(stockid) = 4");
+            mResultSet = mStatement.executeQuery("select * from " + tableName + " where length(stockid) <= 5");
             while (mResultSet.next()) {
                 String id = mResultSet.getString("stockid");
                 String name = mResultSet.getString("stockname");

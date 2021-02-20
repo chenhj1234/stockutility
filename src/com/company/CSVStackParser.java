@@ -69,11 +69,11 @@ public class CSVStackParser {
     public void resetInfoList() {
         mCsvListener.infoList = new StockInfoList();;
     }
-    private boolean insertStockIntoIdTable(String stockid, String stockName, boolean checkDuplicate) {
+    private boolean insertStockIntoIdTable(String stockid, String stockName, boolean isAlpha) {
         StockSqlUtil sutil = StockSqlUtil.getInstence();
-        String tableName = sutil.getTblStockIdUpdate();
+        String tableName = sutil.getTblStockIdUpdate(isAlpha);
         if(!sutil.checkIdExistInTable(tableName,stockid)) {
-            System.out.println("insert " + stockid + " " + stockName);
+            System.out.println("insert into table "+ tableName + " with " + stockid + " " + stockName);
             sutil.initInsertTable();
             sutil.insertValue("stockid", stockid);
             sutil.insertValue("stockname", stockName);
@@ -81,24 +81,6 @@ public class CSVStackParser {
         } else {
             System.out.println("data duplicat " + stockid + " " + stockName);
         }
-//        try {
-//            connectToServer();
-//            if(checkDuplicate) {
-//                if(checkIdExistInTable(table_stockid, stockid)) {
-//                    return true;
-//                }
-//            }
-//            mPreparedStatement = mConnection.prepareStatement("insert into  " + table_stockid + " values (?, ?)");
-//            mPreparedStatement.setString(1, stockid);
-//            mPreparedStatement.setString(2, stockName);
-//            mPreparedStatement.executeUpdate();
-//            if(mConnection != null) {
-//                mConnection.close();
-//                mConnection = null;
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
         return false;
     }
     private void printAllTableRow() {
@@ -154,6 +136,10 @@ public class CSVStackParser {
     }
 
     public void insertStockId(StockInfoList sInfo) {
+        insertStockId(sInfo, true);
+    }
+
+    public void insertStockId(StockInfoList sInfo, boolean isAlpha) {
         String seString, senString;
         for(int i = 0;i < sInfo.stockInfoList.size();i++) {
             StockInfoList.StockEntry se = sInfo.stockInfoList.get(i);
@@ -162,7 +148,7 @@ public class CSVStackParser {
             if(!seString.matches("\\d+")) {
                 continue;
             }
-            if(DEBUG_WRITE_DB) insertStockIntoIdTable(seString, senString, true);
+            if(DEBUG_WRITE_DB) insertStockIntoIdTable(seString, senString, isAlpha);
         }
         if(DEBUG_READ_DB) StartBdd();
     }
